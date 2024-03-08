@@ -60,13 +60,13 @@ class SearchIterator:
         self.page_number += 1
         self.url = url_template.format(self.page_number*30)
         print(self.url)
-        time.sleep(2)
+        time.sleep(1)
         return
     
     def _get_page(self):
         """ Get search page """
         self.driver.get(self.url)
-        time.sleep(random.uniform(20, 40))
+        time.sleep(random.uniform(15, 30))
         return
     
     def _click_seeall_button(self):
@@ -74,6 +74,7 @@ class SearchIterator:
         wait = WebDriverWait(self.driver, 50)
         wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'See all')]"))).click()
         print('See all button clicked')
+        time.sleep(random.uniform(15, 30))
         return
     
     def _check_continue(self):
