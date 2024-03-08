@@ -19,10 +19,12 @@ class SearchIterator:
         self.cursor = None
         self.page_number = -1
         self.url = url_template.format(self.page_number)
-        self.continue_flag = True
+        self.continue_flag = False
+        self.new_result_flag = True
         self.result_element = None
         self.result_id = None
         self.result_url = None
+        
 
         print('istantiated')
         self._get_driver()
@@ -58,13 +60,13 @@ class SearchIterator:
         self.page_number += 1
         self.url = url_template.format(self.page_number*30)
         print(self.url)
-        time.sleep(5)
+        time.sleep(2)
         return
     
     def _get_page(self):
         """ Get search page """
         self.driver.get(self.url)
-        time.sleep(random.uniform(20, 30))
+        time.sleep(random.uniform(20, 40))
         return
     
     def _click_seeall_button(self):
@@ -74,18 +76,33 @@ class SearchIterator:
         print('See all button clicked')
         return
     
+    def _check_continue(self):
+        """ 
+        Set continue_flag to True if there are new results. 
+        At least one new result in the page = continue page iteration. No new results in page = stop page iteration 
+        """
+        if self.new_result_flag == True:
+            if self.continue_flag == False:
+                self.continue_flag = True
+                print('continue_flag set to True')
+        return
+    
     def _insert_result(self):
         """ Insert result in db, only if continue_flag is True """
-        if self.continue_flag:
+        if self.new_result_flag == True:
             self.cursor.execute(f'insert into RESULT (id, url) values ({self.result_id}, \'{self.result_url}\')')
+            self.connection.commit()
             print('result inserted')
         return
     
     def _check_result(self):
-        """ Check if result is already in db, change continue_flag if so """
-        if self.cursor.execute(f'select count(*)>0 from RESULT where id={self.result_id}').fetchone()[0]:
-            self.continue_flag = False
-            print('continue_flag set to False')
+        """ Check if result is already in db, change new_result_flag if so """
+        if self.cursor.execute(f'select count(*)>0 from RESULT where id={self.result_id}').fetchone()[0]: # id already in db
+            self.new_result_flag = False
+            print('new_result_flag set to False')
+        else:
+            self.new_result_flag = True
+            print('new_result_flag set to True')
         return
     
     def _scrape_result(self):
@@ -96,17 +113,24 @@ class SearchIterator:
         return
 
     def _iterate_result(self):
-        """ Cycle through results in search page. Break if continue_flag is False """
+        """ Cycle through results in search page """
         for element in self.driver.find_elements('class name', 'listItem'):
             self.result_element = element
             self._scrape_result()
             self._check_result()
             self._insert_result()
+            self._check_continue()
             time.sleep(0.05)
         return
     
+    def _reset_continue_flag(self):
+        """ Reset continue_flag to False, before advancing to next page """
+        self.continue_flag = False
+        print('continue_flag reset to False')
+        return
+    
     def _iterate_page(self):
-        """ Cycle through search pages """
+        """ Cycle through search pages. Break if continue_flag is False """
         while True:
             self._increase_page()
             self._get_page()
@@ -115,6 +139,7 @@ class SearchIterator:
             if self.continue_flag == False:
                 print('continue_flag is False, breaking')
                 break
+            self._reset_continue_flag()
         return
     
     def run(self):
