@@ -24,6 +24,8 @@ class SearchIterator:
         self.result_element = None
         self.result_id = None
         self.result_url = None
+        self.result_rating = None
+        self.result_reviews = None
         
 
         print('istantiated')
@@ -60,13 +62,13 @@ class SearchIterator:
         self.page_number += 1
         self.url = url_template.format(self.page_number*30)
         print(self.url)
-        time.sleep(1)
+        time.sleep(0.5)
         return
     
     def _get_page(self):
         """ Get search page """
         self.driver.get(self.url)
-        time.sleep(random.uniform(15, 30))
+        time.sleep(random.uniform(10, 20))
         return
     
     def _click_seeall_button(self):
@@ -74,7 +76,7 @@ class SearchIterator:
         wait = WebDriverWait(self.driver, 50)
         wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'See all')]"))).click()
         print('See all button clicked')
-        time.sleep(random.uniform(15, 30))
+        time.sleep(random.uniform(10, 20))
         return
     
     def _check_continue(self):
@@ -91,7 +93,7 @@ class SearchIterator:
     def _insert_result(self):
         """ Insert result in db, only if continue_flag is True """
         if self.new_result_flag == True:
-            self.cursor.execute(f'insert into RESULT (id, url) values ({self.result_id}, \'{self.result_url}\')')
+            self.cursor.execute(f'insert into RESULT (id, rating, reviews, url) values ({self.result_id}, {self.result_rating}, {self.result_reviews}, \'{self.result_url}\')')
             self.connection.commit()
             print('result inserted')
         return
@@ -109,6 +111,8 @@ class SearchIterator:
     def _scrape_result(self):
         """ Scrape result element """
         self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href')
+        self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0]
+        self.result_reviews = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
         self.result_id = abs(hash(self.result_url)) # sufficient collision resistance for this use case
         print(self.result_url, '\n', self.result_id)
         return
@@ -121,7 +125,7 @@ class SearchIterator:
             self._check_result()
             self._insert_result()
             self._check_continue()
-            time.sleep(0.05)
+            # time.sleep(0.05)
         return
     
     def _reset_continue_flag(self):
