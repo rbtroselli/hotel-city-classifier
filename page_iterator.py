@@ -27,6 +27,7 @@ class SearchIterator:
         self.result_url = None
         self.result_rating = None
         self.result_reviews = None
+        self.continue_flag_retries = 0
         
         self._get_driver()
         self._get_cursor()
@@ -60,7 +61,15 @@ class SearchIterator:
         """ Increase page number """
         self.page_number += 1
         self.url = url_template.format(self.page_number*30)
-        logging.info(f'Page increased: {self.url}')
+        logging.info(f'Page increased: {self.page_number}, url: {self.url}')
+        time.sleep(0.5)
+        return
+    
+    def _decrease_page(self):
+        """ Decrease page number """
+        self.page_number -= 1
+        self.url = url_template.format(self.page_number*30)
+        logging.info(f'Page decreased: {self.page_number}, url: {self.url}')
         time.sleep(0.5)
         return
     
@@ -138,34 +147,49 @@ class SearchIterator:
         logging.info('Reset continue_flag to False')
         return
     
+    def _reset_continue_flag_retries(self):
+        """ Reset continue_flag_retries to 0, before advancing to next page """
+        self.continue_flag_retries = 0
+        logging.info('Reset continue_flag_retries to 0')
+        return
+    
     def _load_page(self):
         """ Get page and click on 'See all' button. Retries implemented """
-        i = 0
-        while i < 15:
+        retries = 0
+        while retries < 15:
             try:
                 self._get_page()
                 self._click_seeall_button()
                 logging.info('Loaded page')
                 break
             except Exception as e:
-                i += 1
+                retries += 1
                 logging.error(e)
-                logging.error(f'Page not loaded: error getting page or clicking button, retry {i}')
+                logging.error(f'Page not loaded: error getting page or clicking button, retry {retries}')
                 time.sleep(15)
                 continue
         return
     
     def _iterate_page(self):
-        """ Cycle through search pages. Break if continue_flag is False """
+        """ Cycle through search pages. Break if continue_flag is False, after 10 retries """
         while True:
             self._increase_page()
             self._load_page()
             self._iterate_result()
-            if self.continue_flag == False:
+            if (self.continue_flag == False) and (self.continue_flag_retries < 10):
+                self.continue_flag_retries += 1
+                self._decrease_page()
+                logging.info(f'continue_flag is False, retrying loading page, retry {self.continue_flag_retries}')
+                continue
+            if (self.continue_flag == False) and (self.continue_flag_retries >= 10):
                 logging.info('continue_flag is False, breaking scraping loop')
                 break
-            self._reset_continue_flag()
-            logging.info('Done page, continuing to next page')
+            else: # continue_flag is True
+                self._reset_continue_flag_retries()
+                self._reset_continue_flag()
+                logging.info('Done page, continuing to next page')
+                logging.info('-'*50)
+                continue
         return
     
     def run(self):
