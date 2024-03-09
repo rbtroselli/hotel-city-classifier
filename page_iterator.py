@@ -32,14 +32,7 @@ class SearchIterator:
         self._get_driver()
         self._get_cursor()
         
-        # parametri vari per la ricerca
         return
-
-    # def _get_driver(self):
-    #     """ Initiate selenium (uc) driver """
-    #     user_data_dir = './browser/user_data_uc' # local data folder
-    #     self.driver = uc.Chrome(headless=False, user_data_dir=user_data_dir)
-    #     return 
     
     def _get_driver(self):
         """ Return a driver to use selenium """
@@ -203,11 +196,5 @@ class SearchIterator:
         return
 
 
-
-
-
 si = SearchIterator()
 si.run()
-
-
-
