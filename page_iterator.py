@@ -134,12 +134,27 @@ class SearchIterator:
         print('continue_flag reset to False')
         return
     
+    def _load_page(self):
+        """ Get page and click on 'See all' button. Retries implemented """
+        i = 0
+        while i < 10:
+            try:
+                self._get_page()
+                self._click_seeall_button()
+                print('Page loaded')
+                break
+            except:
+                i += 1
+                print(f'Page not loaded: error getting page or clicking button, retry {i}')
+                time.sleep(15)
+                continue
+        return
+    
     def _iterate_page(self):
         """ Cycle through search pages. Break if continue_flag is False """
         while True:
             self._increase_page()
-            self._get_page()
-            self._click_seeall_button()
+            self._load_page()
             self._iterate_result()
             if self.continue_flag == False:
                 print('continue_flag is False, breaking')
@@ -152,6 +167,7 @@ class SearchIterator:
         try:
             self._iterate_page()
         finally:
+            time.sleep(1200)
             self.driver.quit()
             self.connection.close()
         return
