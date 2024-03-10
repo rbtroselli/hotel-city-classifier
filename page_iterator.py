@@ -27,7 +27,7 @@ class SearchIterator:
         self.result_url = None
         self.result_rating = None
         self.result_reviews = None
-        self.result_sponsored = False
+        self.result_sponsored_flag = False
         self.continue_flag_retries = 0
         
         self._get_driver()
@@ -98,7 +98,7 @@ class SearchIterator:
         if self.new_result_flag == True:
             self.cursor.execute(f"""
                 insert into RESULT (id, rating, reviews, url, page, sponsored, rank) 
-                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_sponsored}, {self.result_rank})
+                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_sponsored_flag}, {self.result_rank})
             """)
             self.connection.commit()
             logging.info('Inserted result')
@@ -119,15 +119,15 @@ class SearchIterator:
         self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href')
         self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0]
         self.result_reviews = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
-        self.result_sponsored = self.result_element.find_element('class name', 'biGQs._P.osNWb').text == 'Sponsored'
-        self.result_rank = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored == False else 0
+        self.result_sponsored_flag = self.result_element.find_elements('class name', 'ngpKT.WywIO') != []
+        self.result_rank = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored_flag == False else 0
         self.result_id = abs(hash(self.result_url)) # sufficient collision resistance for this use case
         logging.info(f'Scraped result')
         logging.info(f'Id: {self.result_id}')
         logging.info(f'URL: {self.result_url}')
         logging.info(f'Rating: {self.result_rating}')
         logging.info(f'Reviews: {self.result_reviews}')
-        logging.info(f'Sponsored: {self.result_sponsored}')
+        logging.info(f'Sponsored: {self.result_sponsored_flag}')
         logging.info(f'Position: {self.result_rank}')
         return
 
@@ -171,26 +171,31 @@ class SearchIterator:
                 continue
         return
     
+    def _branch_continue(self):
+        """ Branching logic for continue_flag """
+        if (self.continue_flag == False) and (self.continue_flag_retries < 10):
+            self.continue_flag_retries += 1
+            self._decrease_page()
+            logging.info(f'continue_flag is False, retrying loading page, retry {self.continue_flag_retries}')
+            return True
+        if (self.continue_flag == False) and (self.continue_flag_retries >= 10):
+            logging.info('continue_flag is False, breaking scraping loop')
+            return False
+        else: # continue_flag is True
+            self._reset_continue_flag_retries()
+            self._reset_continue_flag()
+            logging.info('Done page, continuing to next page')
+            logging.info('-'*50)
+            return True
+
     def _iterate_page(self):
         """ Cycle through search pages. Break if continue_flag is False, after 10 retries """
         while True:
             self._increase_page()
             self._load_page()
             self._iterate_result()
-            if (self.continue_flag == False) and (self.continue_flag_retries < 10):
-                self.continue_flag_retries += 1
-                self._decrease_page()
-                logging.info(f'continue_flag is False, retrying loading page, retry {self.continue_flag_retries}')
-                continue
-            if (self.continue_flag == False) and (self.continue_flag_retries >= 10):
-                logging.info('continue_flag is False, breaking scraping loop')
+            if self._branch_continue() is False: 
                 break
-            else: # continue_flag is True
-                self._reset_continue_flag_retries()
-                self._reset_continue_flag()
-                logging.info('Done page, continuing to next page')
-                logging.info('-'*50)
-                continue
         return
     
     def run(self):
