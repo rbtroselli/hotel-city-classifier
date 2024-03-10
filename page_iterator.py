@@ -1,7 +1,6 @@
 import logging
 import time
 import random
-import undetected_chromedriver as uc
 import sqlite3
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -29,10 +28,6 @@ class SearchIterator:
         self.result_reviews = None
         self.result_sponsored_flag = False
         self.continue_flag_retries = 0
-        
-        self._get_driver()
-        self._get_cursor()
-        
         return
     
     def _get_driver(self):
@@ -201,6 +196,8 @@ class SearchIterator:
     def run(self):
         """ Run the search iterator """
         try:
+            self._get_driver()
+            self._get_cursor()
             self._iterate_page()
         finally:
             time.sleep(600)
@@ -208,6 +205,6 @@ class SearchIterator:
             self.connection.close()
         return
 
-
-si = SearchIterator()
-si.run()
+if __name__ == '__main__':
+    si = SearchIterator()
+    si.run()
