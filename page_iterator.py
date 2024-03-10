@@ -97,8 +97,8 @@ class SearchIterator:
         """ Insert result in db, only if continue_flag is True """
         if self.new_result_flag == True:
             self.cursor.execute(f"""
-                insert into RESULT (id, rating, reviews, url, page, sponsored, position) 
-                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_sponsored}, {self.result_position})
+                insert into RESULT (id, rating, reviews, url, page, sponsored, rank) 
+                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_sponsored}, {self.result_rank})
             """)
             self.connection.commit()
             logging.info('Inserted result')
@@ -120,7 +120,7 @@ class SearchIterator:
         self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0]
         self.result_reviews = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
         self.result_sponsored = self.result_element.find_element('class name', 'biGQs._P.osNWb').text == 'Sponsored'
-        self.result_position = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored == False else 0
+        self.result_rank = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored == False else 0
         self.result_id = abs(hash(self.result_url)) # sufficient collision resistance for this use case
         logging.info(f'Scraped result')
         logging.info(f'Id: {self.result_id}')
@@ -128,7 +128,7 @@ class SearchIterator:
         logging.info(f'Rating: {self.result_rating}')
         logging.info(f'Reviews: {self.result_reviews}')
         logging.info(f'Sponsored: {self.result_sponsored}')
-        logging.info(f'Position: {self.result_position}')
+        logging.info(f'Position: {self.result_rank}')
         return
 
     def _iterate_result(self):
