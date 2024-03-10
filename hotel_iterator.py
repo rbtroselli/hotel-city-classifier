@@ -55,11 +55,14 @@ class HotelIterator:
         # self.cursor.execute(f'update result set scraped_flag=1 where id={self.hotel_id}')
         self.cursor.execute('select 1')
         self.connection.commit()
+
+        # to do: un-comment correct update, when finished testing
         return
     
 
     def _insert_data(self):
         """ Insert hotel data in db """
+        # to do: insert code
         return
     
 
@@ -100,10 +103,14 @@ class HotelIterator:
         self.hotel_name = self.driver.find_element('class name', 'WMndO.f').text
         self.hotel_address = self.driver.find_element('class name', 'FhOgt.H3.f.u.fRLPH').text
         self.hotel_description = self.driver.find_element('class name', '_T.FKffI.TPznB.Ci.ajMTa.Ps.Z.BB').text
+        logging.info('Scraped hotel')
+        logging.info(f'Name: {self.hotel_name}')
+        logging.info(f'Address: {self.hotel_address}')
+        logging.info(f'Description: {self.hotel_description}')
         
         
         
-        
+        # to do: get all missing information from the page
         
         self._geocode_hotel()
         self._get_amenities()
@@ -120,7 +127,9 @@ class HotelIterator:
         """ Get hotel page """
         self.driver.get(self.hotel_url)
         logging.info('Got page')
-        time.sleep(random.uniform(20, 40))
+        # time.sleep(random.uniform(20, 40))
+        time.sleep(5)
+        # to do: un-comment correct sleep, when finished testing
         return
     
     def _load_hotel_page(self):
@@ -143,11 +152,11 @@ class HotelIterator:
 
     def _get_hotel_from_db(self):
         """ Get hotel from db """
-        self.cursor.execute('select id, url from result where reviews>1 and scraped_flag=0 order by random() limit 1;')
+        self.cursor.execute('select id, url from result where reviews>1 and hotel_scraped_flag=0 order by random() limit 1;')
         # to do: put this code in its function, somehow:
-        if self.cursor.fetchone() is not None:
-            self.hotel_id = self.cursor.fetchone()[0]
-            self.hotel_url = self.cursor.fetchone()[1]
+        row = self.cursor.fetchone()
+        if row is not None:
+            self.hotel_id, self.hotel_url = row
             logging.info(f'Got hotel from db: {self.hotel_id}, {self.hotel_url}')
             return
         else:
@@ -166,6 +175,11 @@ class HotelIterator:
             self._scrape_hotel()
             self._insert_data()
             self._update_scraped_flag()
+
+
+
+            
+            break # testing
         return
 
     def run(self):
@@ -175,7 +189,8 @@ class HotelIterator:
             self._get_cursor()
             self._iterate_hotel()
         finally:
-            time.sleep(600)
+            # time.sleep(600)
+            time.sleep(60)
             self.driver.quit()
             self.connection.close()
         return
