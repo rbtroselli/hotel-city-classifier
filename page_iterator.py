@@ -27,6 +27,7 @@ class SearchIterator:
         self.result_url = None
         self.result_rating = None
         self.result_reviews = None
+        self.result_sponsored = False
         self.continue_flag_retries = 0
         
         self._get_driver()
@@ -95,7 +96,10 @@ class SearchIterator:
     def _insert_result(self):
         """ Insert result in db, only if continue_flag is True """
         if self.new_result_flag == True:
-            self.cursor.execute(f'insert into RESULT (id, rating, reviews, url) values ({self.result_id}, {self.result_rating}, {self.result_reviews}, \'{self.result_url}\')')
+            self.cursor.execute(f"""
+                insert into RESULT (id, rating, reviews, url, page, sponsored, position) 
+                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_sponsored}, {self.result_position})
+            """)
             self.connection.commit()
             logging.info('Inserted result')
         return
@@ -115,12 +119,16 @@ class SearchIterator:
         self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href')
         self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0]
         self.result_reviews = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
+        self.result_sponsored = self.result_element.find_element('class name', 'biGQs._P.osNWb').text == 'Sponsored'
+        self.result_position = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored == False else 0
         self.result_id = abs(hash(self.result_url)) # sufficient collision resistance for this use case
         logging.info(f'Scraped result')
         logging.info(f'Id: {self.result_id}')
         logging.info(f'URL: {self.result_url}')
         logging.info(f'Rating: {self.result_rating}')
         logging.info(f'Reviews: {self.result_reviews}')
+        logging.info(f'Sponsored: {self.result_sponsored}')
+        logging.info(f'Position: {self.result_position}')
         return
 
     def _iterate_result(self):
@@ -190,7 +198,7 @@ class SearchIterator:
         try:
             self._iterate_page()
         finally:
-            time.sleep(1200)
+            time.sleep(600)
             self.driver.quit()
             self.connection.close()
         return
