@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
 from selenium import webdriver
 from geopy.geocoders import Nominatim
+from selenium.common.exceptions import NoSuchElementException
 
 
 # logging.basicConfig(filename='logs/hotel_iterator.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
@@ -30,7 +31,10 @@ class HotelIterator:
         self.hotel_longitude = None
         self.hotel_altitude = None
         self.hotel_amenities_dict = {}
-    
+        self.hotel_qualities = {}
+        self.hotel_rating = None
+        self.hotel_reviews = None
+
         return
 
     def _get_driver(self):
@@ -63,6 +67,7 @@ class HotelIterator:
     def _insert_data(self):
         """ Insert hotel data in db """
         # to do: insert code
+        # costruire la query in maniera ricorsiva, con i valori che non sono sempre presenti, tipo le amenities
         return
     
 
@@ -90,30 +95,57 @@ class HotelIterator:
     
     def _geocode_hotel(self): 
         """ Geocode hotel address to coordinates """
-        geolocator = Nominatim(user_agent='hotel_locator_geocoder')
+        geolocator = Nominatim(user_agent='hotel_locator_geocoder', timeout=30)
         location = geolocator.geocode(self.hotel_address)
         self.hotel_latitude = location.latitude if location is not None else None
         self.hotel_longitude = location.longitude if location is not None else None
         self.hotel_altitude = location.altitude if location is not None else None
         logging.info(f'Geocoded hotel: {self.hotel_latitude}, {self.hotel_longitude}, {self.hotel_altitude}')
         return
+    
+    def _get_hotel_qualities(self):
+        """ Get hotel qualities: Location, Cleanliness, Service, Value """
+        for quality in self.driver.find_elements('class name', 'RZjkd'):
+            quality_name = quality.find_element('class name', 'o').text
+            logging.info(f'Got quality: {quality_name}')
+            quality_rating = quality.find_element('class name', 'biGQs._P.fiohW.biKBZ.osNWb').text
+            logging.info(f'Got quality rating: {quality_rating}')
+            self.hotel_qualities[quality_name] = quality_rating
+        logging.info(f'Got hotel qualities: {self.hotel_qualities}')
+        return
 
     def _scrape_hotel(self):
         """ Scrape hotel data """
         self.hotel_name = self.driver.find_element('class name', 'WMndO.f').text
         self.hotel_address = self.driver.find_element('class name', 'FhOgt.H3.f.u.fRLPH').text
-        self.hotel_description = self.driver.find_element('class name', '_T.FKffI.TPznB.Ci.ajMTa.Ps.Z.BB').text
+        try:
+            self.hotel_description = self.driver.find_element('class name', '_T.FKffI.TPznB.Ci.ajMTa.Ps.Z.BB').text
+        except NoSuchElementException:
+            self.hotel_description = 'No description'
+        self.hotel_rating = self.driver.find_element('class name', 'kJyXc.P').text
+        self.hotel_reviews = (
+            self.driver
+            .find_element('class name', 'UikNM._G.B-._S._W._T.c.G_.wSSLS.TXrCr.raEkE')
+            .find_element('class name', 'biGQs._P.pZUbB.KxBGd')
+            .text
+            .split(' ')[0]
+            .replace(',','')
+        )
+
         logging.info('Scraped hotel')
         logging.info(f'Name: {self.hotel_name}')
         logging.info(f'Address: {self.hotel_address}')
         logging.info(f'Description: {self.hotel_description}')
+        logging.info(f'Hotel rating: {self.hotel_rating}')
+        logging.info(f'Hotel reviews: {self.hotel_reviews}')
         
         
         
         # to do: get all missing information from the page
-        
+
         self._geocode_hotel()
         self._get_amenities()
+        self._get_hotel_qualities()
         return
     
     
@@ -121,15 +153,16 @@ class HotelIterator:
         """ Check if hotel page is valid """
         if self.driver.find_elements('class name', 'WMndO.f') == []:
             raise Exception('No name found, invalid page')
+        logging.info('Checked page')
         return
     
     def _get_hotel_page(self):
         """ Get hotel page """
-        self.driver.get(self.hotel_url)
+        # self.driver.get(self.hotel_url)
+        # test: 
+        self.driver.get('https://www.tripadvisor.com/Hotel_Review-g187791-d21203734-Reviews-Casavignoni-Rome_Lazio.html')
         logging.info('Got page')
-        # time.sleep(random.uniform(20, 40))
-        time.sleep(5)
-        # to do: un-comment correct sleep, when finished testing
+        time.sleep(random.uniform(20, 40))
         return
     
     def _load_hotel_page(self):
@@ -139,13 +172,13 @@ class HotelIterator:
             try:
                 self._get_hotel_page()
                 self._check_hotel_page()
-                logging.info('Hotel page loaded')
+                logging.info('Loaded hotel page')
                 break
             except Exception as e:
                 retries += 1
                 logging.error(e)
-                logging.error(f'Page not loaded, retry {retries}')
-                time.sleep(30)
+                logging.error(f'Did not load hotel page, retry {retries}')
+                time.sleep(5)
                 continue
         return
     
@@ -163,6 +196,15 @@ class HotelIterator:
             self.continue_flag = False
             logging.info('No more hotels to scrape')
             return
+        
+    def _update_insert(self):
+        """ Insert hotel data in databse. Update scraped_flag for the hotel id """
+        self._insert_data()
+        self.connection.commit()
+        return
+        self._update_scraped_flag()
+        self.connection.commit()
+        return
     
 
     def _iterate_hotel(self):
@@ -173,13 +215,10 @@ class HotelIterator:
                 break
             self._load_hotel_page()
             self._scrape_hotel()
-            self._insert_data()
-            self._update_scraped_flag()
+            self._update_insert()
 
-
-
-            
             break # testing
+        logging.info('Finished iteration')
         return
 
     def run(self):
@@ -188,9 +227,13 @@ class HotelIterator:
             self._get_driver()
             self._get_cursor()
             self._iterate_hotel()
+        except Exception as e:
+            logging.error(e)
+            raise e
         finally:
+            logging.info('Quitting')
             # time.sleep(600)
-            time.sleep(60)
+            input('___')
             self.driver.quit()
             self.connection.close()
         return
@@ -198,3 +241,6 @@ class HotelIterator:
 if __name__ == '__main__':
     hi = HotelIterator()
     hi.run()
+
+    # insert hotel e aggiornamento flag nello stesso commit, 
+    # così se va in errore, o se stoppo il programma, il flag non è aggiornato in maniera errata
