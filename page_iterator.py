@@ -112,10 +112,10 @@ class SearchIterator:
     def _scrape_result(self):
         """ Scrape result element """
         self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href')
-        self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0]
         self.result_reviews = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
+        self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0] if self.result_reviews != '0' else -1
         self.result_sponsored_flag = self.result_element.find_elements('class name', 'ngpKT.WywIO') != []
-        self.result_rank = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored_flag == False else 0
+        self.result_rank = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored_flag == False else -1
         self.result_id = abs(hash(self.result_url)) # sufficient collision resistance for this use case
         logging.info(f'Scraped result')
         logging.info(f'Id: {self.result_id}')
