@@ -1,19 +1,13 @@
 import logging
 import time
 import random
-import undetected_chromedriver as uc
 import sqlite3
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By 
 from selenium import webdriver
 from geopy.geocoders import Nominatim
-from selenium.common.exceptions import NoSuchElementException
 
 
-
-# logging.basicConfig(filename='logs/hotel_iterator.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
+logging.basicConfig(filename='logs/hotel_iterator.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
 class HotelIterator:
     def __init__(self):
@@ -21,7 +15,6 @@ class HotelIterator:
         self.driver = None
         self.connection = None
         self.cursor = None
-        
         self.continue_flag = True
         self.hotel_id = None
         self.hotel_url = None
@@ -75,8 +68,8 @@ class HotelIterator:
     
     def _update_scraped_flag(self):
         """ Update scraped flag in db """
-        # self.cursor.execute(f'update result set scraped_flag=1 where id={self.hotel_id}')
-        self.cursor.execute('select 1')
+        self.cursor.execute(f'update result set hotel_scraped_flag=1 where id={self.hotel_id}')
+        logging.info('Updated scraped flag. Did not commit yet')
         return
     
     def _insert_data(self):
@@ -131,12 +124,30 @@ class HotelIterator:
                 '{','.join(self.hotel_reviews_keywords) if self.hotel_reviews_keywords != [] else 'NA'}'
             );
         """)
-        logging.info(query)
+        logging.debug(query)
         self.cursor.execute(query)  
         logging.info('Inserted data. Did not commit yet')
         return
     
+    def _update_insert(self):
+        """ Insert hotel data in databse. Update scraped_flag for the hotel id """
+        self._insert_data()
+        self._update_scraped_flag()
+        self.connection.commit()
+        logging.info('Committed insert and update')
+        return
+    
 
+    def _geocode_hotel(self): 
+        """ Geocode hotel address to coordinates """
+        geolocator = Nominatim(user_agent='hotel_locator_geocoder', timeout=30)
+        location = geolocator.geocode(self.hotel_address)
+        self.hotel_latitude = location.latitude if location is not None else None
+        self.hotel_longitude = location.longitude if location is not None else None
+        self.hotel_altitude = location.altitude if location is not None else None
+        logging.info(f'Geocoded hotel: {self.hotel_latitude}, {self.hotel_longitude}, {self.hotel_altitude}')
+        return
+    
     def _get_amenities(self):
         """ Get hotel amenities """
         # get amenities titles
@@ -157,16 +168,6 @@ class HotelIterator:
             if i < len(amenities_box_list):
                 self.hotel_amenities_dict[amenities_titles_list[i]] = amenities_box_list[i] 
         logging.info(f'Got amenities: {self.hotel_amenities_dict}')
-        return
-    
-    def _geocode_hotel(self): 
-        """ Geocode hotel address to coordinates """
-        geolocator = Nominatim(user_agent='hotel_locator_geocoder', timeout=30)
-        location = geolocator.geocode(self.hotel_address)
-        self.hotel_latitude = location.latitude if location is not None else None
-        self.hotel_longitude = location.longitude if location is not None else None
-        self.hotel_altitude = location.altitude if location is not None else None
-        logging.info(f'Geocoded hotel: {self.hotel_latitude}, {self.hotel_longitude}, {self.hotel_altitude}')
         return
     
     def _get_qualities(self):
@@ -237,7 +238,6 @@ class HotelIterator:
         self.hotel_pictures = self.driver.find_element('class name', 'GuzzA').text.split('(')[-1].replace(')','').replace(',','')
         self.hotel_dollars_per_night = self.driver.find_element('class name', 'biGQs._P.pZUbB.fOtGX').text.split('$')[-1].split(' ')[0].replace(',','') if self.driver.find_elements('class name', 'biGQs._P.pZUbB.fOtGX') != [] else None
         self.hotel_reviews_summary = self.driver.find_element('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd').text if self.driver.find_elements('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd') != [] else 'No reviews summary'
-
         logging.info('Scraped hotel')
         logging.info(f'Name: {self.hotel_name}')
         logging.info(f'Address: {self.hotel_address}')
@@ -251,9 +251,8 @@ class HotelIterator:
         logging.info(f'Pictures: {self.hotel_pictures}')
         logging.info(f'Typical price: {self.hotel_dollars_per_night}')
         logging.info(f'Reviews summary: {self.hotel_reviews_summary[:50]} [...] {self.hotel_reviews_summary[-50:]}')
-        
-        self._get_description()
         self._geocode_hotel()
+        self._get_description()
         self._get_amenities()
         self._get_qualities()
         self._get_reviews_keypoints()
@@ -262,8 +261,6 @@ class HotelIterator:
         return
     
 
-    
-    
     def _check_hotel_page(self):
         """ Check if hotel page is valid """
         if self.driver.find_elements('class name', 'WMndO.f') == []:
@@ -299,7 +296,6 @@ class HotelIterator:
     def _get_hotel_from_db(self):
         """ Get hotel from db """
         self.cursor.execute('select id, url from result where reviews>100 and hotel_scraped_flag=0 order by random() limit 1;')
-        # to do: put this code in its function, somehow:
         row = self.cursor.fetchone()
         if row is not None:
             self.hotel_id, self.hotel_url = row
@@ -310,14 +306,6 @@ class HotelIterator:
             logging.info('No more hotels to scrape')
             return
         
-    def _update_insert(self):
-        """ Insert hotel data in databse. Update scraped_flag for the hotel id """
-        self._insert_data()
-        self._update_scraped_flag()
-        self.connection.commit()
-        logging.info('Committed insert and update')
-        return
-    
 
     def _iterate_hotel(self):
         """ Iterate over hotel pages and scrape data """
@@ -330,7 +318,6 @@ class HotelIterator:
             self._update_insert()
             logging.info('Finished hotel')
             logging.info('-'*50)
-            # break # testing
         logging.info('Finished iterating hotels')
         return
 
@@ -353,8 +340,3 @@ class HotelIterator:
 if __name__ == '__main__':
     hi = HotelIterator()
     hi.run()
-
-    # insert hotel e aggiornamento flag nello stesso commit, 
-    # così se va in errore, o se stoppo il programma, il flag non è aggiornato in maniera errata
-    # capire se rimpiazzare \n e \r con spazi nelle desc
-    # rimuovere altitude? inutile? oppure lasciare  e via, tanto male non fa
