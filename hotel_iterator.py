@@ -129,7 +129,7 @@ class HotelIterator:
         logging.info('Inserted data. Did not commit yet')
         return
     
-    def _update_insert(self):
+    def _insert_update(self):
         """ Insert hotel data in databse. Update scraped_flag for the hotel id """
         self._insert_data()
         self._update_scraped_flag()
@@ -205,7 +205,8 @@ class HotelIterator:
             point_name = point.find_element('class name', 'biGQs._P.pZUbB.qWPrE.hmDzD').text
             point_grade = point.find_element('class name', 'biGQs._P.kdCdj.ncFvv.fOtGX').text
             self.hotel_reviews_keypoints[point_name] = point_grade
-        logging.info(f'Got key point: {key_points}')
+        for key, value in self.hotel_reviews_keypoints.items():
+            logging.info(f'Got keypoint: {key}: {value}')
         return
     
     def _get_reviews_keywords(self):
@@ -227,16 +228,9 @@ class HotelIterator:
             self.hotel_reviews_distribution[5-i] = review_amount.text.replace(',','')
         logging.info(f'Got reviews distribution: {self.hotel_reviews_distribution}')
         return
-    
-    def _focus_browser_window(self):
-        """ Focus browser window to get all data loaded """
-        self.driver.switch_to.window(self.driver.window_handles[0])
-        logging.info('Focused browser window')
-        return
 
     def _scrape_hotel(self):
         """ Scrape hotel data """
-        self._focus_browser_window()
         self.hotel_name = self.driver.find_element('class name', 'WMndO.f').text
         self.hotel_address = self.driver.find_element('class name', 'FhOgt.H3.f.u.fRLPH').text
         self.hotel_rating = self.driver.find_element('class name', 'kJyXc.P').text
@@ -279,6 +273,12 @@ class HotelIterator:
         logging.info('Checked page')
         return
     
+    def _focus_browser_window(self):
+        """ Focus browser window to get all data loaded """
+        self.driver.switch_to.window(self.driver.window_handles[0])
+        logging.info('Focused browser window')
+        return
+    
     def _get_hotel_page(self):
         """ Get hotel page """
         self.driver.get(self.hotel_url)
@@ -291,6 +291,7 @@ class HotelIterator:
         while retries < 10:
             try:
                 self._get_hotel_page()
+                self._focus_browser_window()    
                 self._check_hotel_page()
                 logging.info('Loaded hotel page')
                 self._wait_humanly()
@@ -307,6 +308,7 @@ class HotelIterator:
     def _get_hotel_from_db(self):
         """ Get hotel from db """
         self.cursor.execute('select id, url from result where reviews>100 and hotel_scraped_flag=0 order by random() limit 1;')
+        # self.cursor.execute('select id, url from result where id=414003738016358719 and hotel_scraped_flag=0 order by random() limit 1;')
         row = self.cursor.fetchone()
         if row is not None:
             self.hotel_id, self.hotel_url = row
@@ -351,15 +353,22 @@ class HotelIterator:
     def _iterate_hotel(self):
         """ Iterate over hotel pages and scrape data """
         while True:
-            self._get_hotel_from_db()
-            if self.continue_flag == False:
-                break
-            self._load_hotel_page()
-            self._scrape_hotel()
-            self._update_insert()
-            self._reset_attributes()
-            logging.info('Finished hotel')
-            logging.info('-'*50)
+            try:
+                self._get_hotel_from_db()
+                if self.continue_flag == False:
+                    break
+                self._load_hotel_page()
+                self._scrape_hotel()
+                self._insert_update()
+                self._reset_attributes()
+                logging.info('Finished hotel')
+                logging.info('-'*50)
+            except Exception as e:
+                self._reset_attributes()
+                logging.error(e)
+                logging.info('Error in hotel scraping or inserting data, skipping hotel')
+                logging.info('-'*50)
+                continue
         logging.info('Finished iterating hotels')
         return
 
