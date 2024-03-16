@@ -121,7 +121,7 @@ class HotelIterator:
                 {self.hotel_reviews_distribution[3]},
                 {self.hotel_reviews_distribution[2]},
                 {self.hotel_reviews_distribution[1]},
-                '{','.join(self.hotel_reviews_keywords) if self.hotel_reviews_keywords != [] else 'NA'}'
+                '{','.join([keyword.replace("'","''") for keyword in self.hotel_reviews_keywords]) if self.hotel_reviews_keywords != [] else 'NA'}'
             );
         """)
         logging.debug(query)
@@ -167,18 +167,22 @@ class HotelIterator:
         for i in range(len(amenities_titles_list)):
             if i < len(amenities_box_list):
                 self.hotel_amenities_dict[amenities_titles_list[i]] = amenities_box_list[i] 
-        logging.info(f'Got amenities: {self.hotel_amenities_dict}')
+        # log the first and last amenities for each key
+        for key, value in self.hotel_amenities_dict.items():
+            logging.info(f'Got {key}: {value[0]}, [...], {value[-1]}')
         return
     
     def _get_qualities(self):
         """ Get hotel qualities: Location, Cleanliness, Service, Value """
         for quality in self.driver.find_elements('class name', 'RZjkd'):
             quality_name = quality.find_element('class name', 'o').text
-            logging.info(f'Got quality: {quality_name}')
+            logging.debug(f'Got quality: {quality_name}')
             quality_rating = quality.find_element('class name', 'biGQs._P.fiohW.biKBZ.osNWb').text
-            logging.info(f'Got quality rating: {quality_rating}')
+            logging.debug(f'Got quality rating: {quality_rating}')
             self.hotel_qualities[quality_name] = quality_rating
-        logging.info(f'Got hotel qualities: {self.hotel_qualities}')
+        # log qualities, key and value
+        for key, value in self.hotel_qualities.items():
+            logging.info(f'Got hotel quality: {key}: {value}')
         return
     
     def _get_description(self):
@@ -189,7 +193,7 @@ class HotelIterator:
             self.hotel_description = self.driver.find_element('class name', '_T.FKffI.TPznB.Ci.ajMTa.Ps.Z.BB').text
         else:
             self.hotel_description = 'No description' # no description
-        logging.info(f'Got hotel description: {self.hotel_description[:50]} [...] {self.hotel_description[-50:]}')
+        logging.info(f'Got hotel description: {self.hotel_description[:30]} [...], {self.hotel_description[-30:]}')
         return
     
     def _get_reviews_keypoints(self):
@@ -201,7 +205,7 @@ class HotelIterator:
             point_name = point.find_element('class name', 'biGQs._P.pZUbB.qWPrE.hmDzD').text
             point_grade = point.find_element('class name', 'biGQs._P.kdCdj.ncFvv.fOtGX').text
             self.hotel_reviews_keypoints[point_name] = point_grade
-        logging.info(f'Got key point: {point}')
+        logging.info(f'Got key point: {key_points}')
         return
     
     def _get_reviews_keywords(self):
@@ -213,7 +217,7 @@ class HotelIterator:
         for keyword in keywords:
             self.hotel_reviews_keywords.append(keyword.text)
         self.hotel_reviews_keywords.remove('All reviews') # remove 'All reviews' from list
-        logging.info(f'Got reviews keywords: {self.hotel_reviews_keywords}')
+        logging.info(f'Got reviews keywords: {self.hotel_reviews_keywords[0]}, [...], {self.hotel_reviews_keywords[-1]}')
         return
     
     def _get_reviews_distribution(self):
@@ -223,9 +227,16 @@ class HotelIterator:
             self.hotel_reviews_distribution[5-i] = review_amount.text.replace(',','')
         logging.info(f'Got reviews distribution: {self.hotel_reviews_distribution}')
         return
+    
+    def _focus_browser_window(self):
+        """ Focus browser window to get all data loaded """
+        self.driver.switch_to.window(self.driver.window_handles[0])
+        logging.info('Focused browser window')
+        return
 
     def _scrape_hotel(self):
         """ Scrape hotel data """
+        self._focus_browser_window()
         self.hotel_name = self.driver.find_element('class name', 'WMndO.f').text
         self.hotel_address = self.driver.find_element('class name', 'FhOgt.H3.f.u.fRLPH').text
         self.hotel_rating = self.driver.find_element('class name', 'kJyXc.P').text
@@ -250,7 +261,7 @@ class HotelIterator:
         logging.info(f'Walkers grade: {self.hotel_walkers_score}')
         logging.info(f'Pictures: {self.hotel_pictures}')
         logging.info(f'Typical price: {self.hotel_average_night_price}')
-        logging.info(f'Reviews summary: {self.hotel_reviews_summary[:50]} [...] {self.hotel_reviews_summary[-50:]}')
+        logging.info(f'Reviews summary: {self.hotel_reviews_summary[:30]} [...] {self.hotel_reviews_summary[-30:]}')
         self._geocode_hotel()
         self._get_description()
         self._get_amenities()
@@ -299,7 +310,9 @@ class HotelIterator:
         row = self.cursor.fetchone()
         if row is not None:
             self.hotel_id, self.hotel_url = row
-            logging.info(f'Got hotel from db: {self.hotel_id}, {self.hotel_url}')
+            logging.info(f'Got hotel from db')
+            logging.info(f'Hotel id: {self.hotel_id}')
+            logging.info(f'Hotel url: {self.hotel_url}')
             return
         else:
             self.continue_flag = False
