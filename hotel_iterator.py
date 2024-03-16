@@ -16,6 +16,7 @@ class HotelIterator:
         self.connection = None
         self.cursor = None
         self.continue_flag = True
+        # hotel attributes
         self.hotel_id = None
         self.hotel_url = None
         self.hotel_name = None
@@ -33,8 +34,12 @@ class HotelIterator:
         self.hotel_walkers_score = None
         self.hotel_pictures = None
         self.hotel_average_night_price = None
+        self.price_range_min = None
+        self.price_range_max = None
         self.hotel_amenities_dict = {}
         self.hotel_qualities = {}
+        self.hotel_additional_info_dict = {}
+        # review attributes
         self.hotel_reviews_summary = None
         self.hotel_reviews_keypoints = {}
         self.hotel_reviews_distribution = {}
@@ -78,8 +83,9 @@ class HotelIterator:
             insert into HOTEL (
                 id, url, name, address, latitude, longitude, altitude, description, rating, reviews, category_rank, 
                 star_rating, nearby_restaurants, nearby_attractions, walkers_score, pictures, average_night_price, 
-                property_amenities, room_features, room_types, location_rating, cleanliness_rating, service_rating, 
-                value_rating, reviews_summary, reviews_keypoint_location, reviews_keypoint_atmosphere, reviews_keypoint_rooms,
+                price_range_min, price_range_max, property_amenities, room_features, room_types, location_rating, 
+                cleanliness_rating, service_rating, value_rating, also_known_as, formerly_known_as, city_location, 
+                number_of_rooms, reviews_summary, reviews_keypoint_location, reviews_keypoint_atmosphere, reviews_keypoint_rooms,
                 reviews_keypoint_value, reviews_keypoint_cleanliness, reviews_keypoint_service, reviews_keypoint_amenities, 
                 reviews_5_excellent, reviews_4_very_good, reviews_3_average, reviews_2_poor, reviews_1_terrible, reviews_keywords
             )
@@ -101,6 +107,8 @@ class HotelIterator:
                 {self.hotel_walkers_score if self.hotel_walkers_score is not None else -1},
                 {self.hotel_pictures},
                 {self.hotel_average_night_price if self.hotel_average_night_price is not None else -1},
+                {self.price_range_min if self.price_range_min is not None else -1},
+                {self.price_range_max if self.price_range_max is not None else -1},
                 '{','.join(self.hotel_amenities_dict['Property amenities']).replace("'","''") if 'Property amenities' in self.hotel_amenities_dict else 'NA'}',
                 '{','.join(self.hotel_amenities_dict['Room features']).replace("'","''") if 'Room features' in self.hotel_amenities_dict else 'NA'}',
                 '{','.join(self.hotel_amenities_dict['Room types']).replace("'","''") if 'Room types' in self.hotel_amenities_dict else 'NA'}',
@@ -108,6 +116,10 @@ class HotelIterator:
                 {self.hotel_qualities['Cleanliness'] if 'Cleanliness' in self.hotel_qualities else -1},
                 {self.hotel_qualities['Service'] if 'Service' in self.hotel_qualities else -1},
                 {self.hotel_qualities['Value'] if 'Value' in self.hotel_qualities else -1},
+                '{self.hotel_additional_info_dict['ALSO KNOWN AS'].replace("'","''") if 'ALSO KNOWN AS' in self.hotel_additional_info_dict else 'NA'}',
+                '{self.hotel_additional_info_dict['FORMERLY KNOWN AS'].replace("'","''") if 'FORMERLY KNOWN AS' in self.hotel_additional_info_dict else 'NA'}',
+                '{self.hotel_additional_info_dict['LOCATION'].replace("'","''") if 'LOCATION' in self.hotel_additional_info_dict else 'NA'}',
+                {self.hotel_additional_info_dict['NUMBER OF ROOMS'] if 'NUMBER OF ROOMS' in self.hotel_additional_info_dict else -1},
                 '{self.hotel_reviews_summary.replace("'","''") if self.hotel_reviews_summary != 'No reviews summary' else 'NA'}',
                 '{self.hotel_reviews_keypoints['Location'] if 'Location' in self.hotel_reviews_keypoints else 'NA'}',
                 '{self.hotel_reviews_keypoints['Atmosphere'] if 'Atmosphere' in self.hotel_reviews_keypoints else 'NA'}',
@@ -228,6 +240,33 @@ class HotelIterator:
             self.hotel_reviews_distribution[5-i] = review_amount.text.replace(',','')
         logging.info(f'Got reviews distribution: {self.hotel_reviews_distribution}')
         return
+    
+    def _get_additional_info(self):
+        """ Get additional info from the bottom of the page """
+        # get additional info titles
+        additional_info_titles_list = [] 
+        for additional_info_title in self.driver.find_elements('class name', 'mpDVe.Ci.b'):
+            additional_info_title_text = additional_info_title.text
+            additional_info_titles_list.append(additional_info_title_text)
+        # get additional info, corresponding to each title
+        additional_info_list = []
+        for additional_info in self.driver.find_elements('class name', 'IhqAp.Ci'):
+            additional_info_text = additional_info.get_attribute('textContent')
+            additional_info_list.append(additional_info_text)
+        # make a dict coupling previous 2 lists. Filter for only some additional info
+        for i in range(len(additional_info_titles_list)):
+            self.hotel_additional_info_dict[additional_info_titles_list[i]] = additional_info_list[i]
+        # get price range extremes
+        if 'PRICE RANGE' in self.hotel_additional_info_dict:
+            self.hotel_additional_info_dict['PRICE RANGE'] = self.hotel_additional_info_dict['PRICE RANGE'].replace(' (Based on Average Rates for a Standard Room) ','')
+            self.price_range_min = self.hotel_additional_info_dict['PRICE RANGE'].split(' - ')[0].replace('$','').replace(',','')
+            self.price_range_max = self.hotel_additional_info_dict['PRICE RANGE'].split(' - ')[1].replace('$','').replace(',','')
+            del self.hotel_additional_info_dict['PRICE RANGE']
+        # print additional info
+        for key, value in self.hotel_additional_info_dict.items():
+            logging.info(f'Got {key}: {value}')
+        logging.info(f'Got price range: {self.price_range_min} - {self.price_range_max}')
+        return
 
     def _scrape_hotel(self):
         """ Scrape hotel data """
@@ -260,6 +299,7 @@ class HotelIterator:
         self._get_description()
         self._get_amenities()
         self._get_qualities()
+        self._get_additional_info()
         self._get_reviews_keypoints()
         self._get_reviews_keywords()
         self._get_reviews_distribution()
@@ -340,8 +380,11 @@ class HotelIterator:
         self.hotel_walkers_score = None
         self.hotel_pictures = None
         self.hotel_average_night_price = None
+        self.price_range_min = None
+        self.price_range_max = None
         self.hotel_amenities_dict = {}
         self.hotel_qualities = {}
+        self.hotel_additional_info_dict = {}
         self.hotel_reviews_summary = None
         self.hotel_reviews_keypoints = {}
         self.hotel_reviews_distribution = {}
