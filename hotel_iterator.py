@@ -13,7 +13,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 
 # logging.basicConfig(filename='logs/hotel_iterator.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s') 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
 class HotelIterator:
     def __init__(self):
@@ -94,10 +94,10 @@ class HotelIterator:
                 {self.hotel_id},
                 '{self.hotel_url}',
                 '{self.hotel_name.replace("'","''")}',
-                '{self.hotel_address}',
-                {self.hotel_latitude},
-                {self.hotel_longitude},
-                {self.hotel_altitude},
+                '{self.hotel_address.replace("'","''")}',
+                {self.hotel_latitude if self.hotel_latitude is not None else 999},
+                {self.hotel_longitude if self.hotel_longitude is not None else 999},
+                {self.hotel_altitude if self.hotel_altitude is not None else 999999},
                 '{self.hotel_description.replace("'","''") if self.hotel_description != 'No description' else 'NA'}',
                 {self.hotel_rating},
                 {self.hotel_reviews},
@@ -107,14 +107,14 @@ class HotelIterator:
                 {self.hotel_nearby_attractions},
                 {self.hotel_walkers_score},
                 {self.hotel_pictures},
-                {self.hotel_dollars_per_night if self.hotel_dollars_per_night is not None else 0},
-                '{','.join(self.hotel_amenities_dict['Property amenities']) if 'Property amenities' in self.hotel_amenities_dict else 'NA'}',
-                '{','.join(self.hotel_amenities_dict['Room features']) if 'Room features' in self.hotel_amenities_dict else 'NA'}',
-                '{','.join(self.hotel_amenities_dict['Room types']) if 'Room types' in self.hotel_amenities_dict else 'NA'}',
-                {self.hotel_qualities['Location'] if 'Location' in self.hotel_qualities else 0},
-                {self.hotel_qualities['Cleanliness'] if 'Cleanliness' in self.hotel_qualities else 0},
-                {self.hotel_qualities['Service'] if 'Service' in self.hotel_qualities else 0},
-                {self.hotel_qualities['Value'] if 'Value' in self.hotel_qualities else 0},
+                {self.hotel_dollars_per_night if self.hotel_dollars_per_night is not None else -1},
+                '{','.join(self.hotel_amenities_dict['Property amenities']).replace("'","''") if 'Property amenities' in self.hotel_amenities_dict else 'NA'}',
+                '{','.join(self.hotel_amenities_dict['Room features']).replace("'","''") if 'Room features' in self.hotel_amenities_dict else 'NA'}',
+                '{','.join(self.hotel_amenities_dict['Room types']).replace("'","''") if 'Room types' in self.hotel_amenities_dict else 'NA'}',
+                {self.hotel_qualities['Location'] if 'Location' in self.hotel_qualities else -1},
+                {self.hotel_qualities['Cleanliness'] if 'Cleanliness' in self.hotel_qualities else -1},
+                {self.hotel_qualities['Service'] if 'Service' in self.hotel_qualities else -1},
+                {self.hotel_qualities['Value'] if 'Value' in self.hotel_qualities else -1},
                 '{self.hotel_reviews_summary.replace("'","''") if self.hotel_reviews_summary != 'No reviews summary' else 'NA'}',
                 '{self.hotel_reviews_keypoints['Location'] if 'Location' in self.hotel_reviews_keypoints else 'NA'}',
                 '{self.hotel_reviews_keypoints['Atmosphere'] if 'Atmosphere' in self.hotel_reviews_keypoints else 'NA'}',
@@ -128,10 +128,10 @@ class HotelIterator:
                 {self.hotel_reviews_distribution[3]},
                 {self.hotel_reviews_distribution[2]},
                 {self.hotel_reviews_distribution[1]},
-                '{','.join(self.hotel_reviews_keywords)}'
+                '{','.join(self.hotel_reviews_keywords) if self.hotel_reviews_keywords != [] else 'NA'}'
             );
         """)
-        logging.debug(query)
+        logging.info(query)
         self.cursor.execute(query)  
         logging.info('Inserted data. Did not commit yet')
         return
@@ -149,7 +149,7 @@ class HotelIterator:
         for amenities_box in self.driver.find_elements('class name', 'Jevoh.K'):
             amenities_list = []
             for amenity in amenities_box.find_elements('class name', 'gFttI.f.ME.Ci.H3._c'):
-                amenity_text = amenity.get_attribute("textContent")
+                amenity_text = amenity.get_attribute('textContent')
                 amenities_list.append(amenity_text)
             amenities_box_list.append(amenities_list)
         # make a dict coupling previous 2 lists
@@ -173,9 +173,9 @@ class HotelIterator:
         """ Get hotel qualities: Location, Cleanliness, Service, Value """
         for quality in self.driver.find_elements('class name', 'RZjkd'):
             quality_name = quality.find_element('class name', 'o').text
-            logging.debug(f'Got quality: {quality_name}')
+            logging.info(f'Got quality: {quality_name}')
             quality_rating = quality.find_element('class name', 'biGQs._P.fiohW.biKBZ.osNWb').text
-            logging.debug(f'Got quality rating: {quality_rating}')
+            logging.info(f'Got quality rating: {quality_rating}')
             self.hotel_qualities[quality_name] = quality_rating
         logging.info(f'Got hotel qualities: {self.hotel_qualities}')
         return
@@ -207,10 +207,12 @@ class HotelIterator:
         """ Get comments keywords """
         keywords = self.driver.find_elements('class name', 'OKHdJ.z.Pc.PQ.Pp.PD.W._S.Gn.Rd._M.qWPrE.biKBZ.PQFNM.wSSLS')
         if keywords == []:
+            logging.info('No reviews keywords found')
             return
         for keyword in keywords:
             self.hotel_reviews_keywords.append(keyword.text)
-        logging.info(f'Got keywords: {self.hotel_reviews_keywords}')
+        self.hotel_reviews_keywords.remove('All reviews') # remove 'All reviews' from list
+        logging.info(f'Got reviews keywords: {self.hotel_reviews_keywords}')
         return
     
     def _get_reviews_distribution(self):
@@ -228,7 +230,7 @@ class HotelIterator:
         self.hotel_rating = self.driver.find_element('class name', 'kJyXc.P').text
         self.hotel_reviews = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[0].text.split(' ')[0].replace(',','')
         self.hotel_category_rank = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[1].text.replace('#', '').replace(',','')
-        self.hotel_star_rating = self.driver.find_element('class name', 'JXZuC.d.H0').get_attribute('title') if self.driver.find_elements('class name', 'JXZuC.d.H0') != [] else None
+        self.hotel_star_rating = self.driver.find_element('class name', 'JXZuC.d.H0').get_attribute('textContent').split(' ')[0] if self.driver.find_elements('class name', 'JXZuC.d.H0') != [] else None
         self.hotel_nearby_restaurants = self.driver.find_elements('class name', 'CllfH')[1].text.split(' ')[0].replace(',','')
         self.hotel_nearby_attractions = self.driver.find_elements('class name', 'CllfH')[2].text.split(' ')[0].replace(',','')
         self.hotel_walkers_score = self.driver.find_element('class name', 'UQxjK.H-').text
@@ -313,6 +315,7 @@ class HotelIterator:
         self._insert_data()
         self._update_scraped_flag()
         self.connection.commit()
+        logging.info('Committed insert and update')
         return
     
 
@@ -327,7 +330,7 @@ class HotelIterator:
             self._update_insert()
             logging.info('Finished hotel')
             logging.info('-'*50)
-            break # testing
+            # break # testing
         logging.info('Finished iterating hotels')
         return
 
