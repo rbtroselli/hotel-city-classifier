@@ -32,7 +32,7 @@ class HotelIterator:
         self.hotel_nearby_attractions = None
         self.hotel_walkers_score = None
         self.hotel_pictures = None
-        self.hotel_dollars_per_night = None
+        self.hotel_average_night_price = None
         self.hotel_amenities_dict = {}
         self.hotel_qualities = {}
         self.hotel_reviews_summary = None
@@ -77,7 +77,7 @@ class HotelIterator:
         query = (f"""
             insert into HOTEL (
                 id, url, name, address, latitude, longitude, altitude, description, rating, reviews, category_rank, 
-                star_rating, nearby_restaurants, nearby_attractions, walkers_score, pictures, dollars_per_night, 
+                star_rating, nearby_restaurants, nearby_attractions, walkers_score, pictures, average_night_price, 
                 property_amenities, room_features, room_types, location_rating, cleanliness_rating, service_rating, 
                 value_rating, reviews_summary, reviews_keypoint_location, reviews_keypoint_atmosphere, reviews_keypoint_rooms,
                 reviews_keypoint_value, reviews_keypoint_cleanliness, reviews_keypoint_service, reviews_keypoint_amenities, 
@@ -98,9 +98,9 @@ class HotelIterator:
                 {self.hotel_star_rating if self.hotel_star_rating is not None else 0},
                 {self.hotel_nearby_restaurants},
                 {self.hotel_nearby_attractions},
-                {self.hotel_walkers_score},
+                {self.hotel_walkers_score if self.hotel_walkers_score is not None else -1},
                 {self.hotel_pictures},
-                {self.hotel_dollars_per_night if self.hotel_dollars_per_night is not None else -1},
+                {self.hotel_average_night_price if self.hotel_average_night_price is not None else -1},
                 '{','.join(self.hotel_amenities_dict['Property amenities']).replace("'","''") if 'Property amenities' in self.hotel_amenities_dict else 'NA'}',
                 '{','.join(self.hotel_amenities_dict['Room features']).replace("'","''") if 'Room features' in self.hotel_amenities_dict else 'NA'}',
                 '{','.join(self.hotel_amenities_dict['Room types']).replace("'","''") if 'Room types' in self.hotel_amenities_dict else 'NA'}',
@@ -234,9 +234,9 @@ class HotelIterator:
         self.hotel_star_rating = self.driver.find_element('class name', 'JXZuC.d.H0').get_attribute('textContent').split(' ')[0] if self.driver.find_elements('class name', 'JXZuC.d.H0') != [] else None
         self.hotel_nearby_restaurants = self.driver.find_elements('class name', 'CllfH')[1].text.split(' ')[0].replace(',','')
         self.hotel_nearby_attractions = self.driver.find_elements('class name', 'CllfH')[2].text.split(' ')[0].replace(',','')
-        self.hotel_walkers_score = self.driver.find_element('class name', 'UQxjK.H-').text
+        self.hotel_walkers_score = self.driver.find_element('class name', 'UQxjK.H-').text if self.driver.find_elements('class name', 'UQxjK.H-') != [] else None
         self.hotel_pictures = self.driver.find_element('class name', 'GuzzA').text.split('(')[-1].replace(')','').replace(',','')
-        self.hotel_dollars_per_night = self.driver.find_element('class name', 'biGQs._P.pZUbB.fOtGX').text.split('$')[-1].split(' ')[0].replace(',','') if self.driver.find_elements('class name', 'biGQs._P.pZUbB.fOtGX') != [] else None
+        self.hotel_average_night_price = self.driver.find_element('class name', 'biGQs._P.pZUbB.fOtGX').text.split('$')[-1].split(' ')[0].replace(',','') if self.driver.find_elements('class name', 'biGQs._P.pZUbB.fOtGX') != [] else None
         self.hotel_reviews_summary = self.driver.find_element('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd').text if self.driver.find_elements('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd') != [] else 'No reviews summary'
         logging.info('Scraped hotel')
         logging.info(f'Name: {self.hotel_name}')
@@ -249,7 +249,7 @@ class HotelIterator:
         logging.info(f'Nearby attractions: {self.hotel_nearby_attractions}')
         logging.info(f'Walkers grade: {self.hotel_walkers_score}')
         logging.info(f'Pictures: {self.hotel_pictures}')
-        logging.info(f'Typical price: {self.hotel_dollars_per_night}')
+        logging.info(f'Typical price: {self.hotel_average_night_price}')
         logging.info(f'Reviews summary: {self.hotel_reviews_summary[:50]} [...] {self.hotel_reviews_summary[-50:]}')
         self._geocode_hotel()
         self._get_description()
@@ -306,6 +306,34 @@ class HotelIterator:
             logging.info('No more hotels to scrape')
             return
         
+    def _reset_attributes(self):
+        """ Reset attributes to None """
+        self.hotel_id = None
+        self.hotel_url = None
+        self.hotel_name = None
+        self.hotel_address = None
+        self.hotel_latitude = None
+        self.hotel_longitude = None
+        self.hotel_altitude = None
+        self.hotel_description = None
+        self.hotel_rating = None
+        self.hotel_reviews = None
+        self.hotel_category_rank = None
+        self.hotel_star_rating = None
+        self.hotel_nearby_restaurants = None
+        self.hotel_nearby_attractions = None
+        self.hotel_walkers_score = None
+        self.hotel_pictures = None
+        self.hotel_average_night_price = None
+        self.hotel_amenities_dict = {}
+        self.hotel_qualities = {}
+        self.hotel_reviews_summary = None
+        self.hotel_reviews_keypoints = {}
+        self.hotel_reviews_distribution = {}
+        self.hotel_reviews_keywords = []
+        logging.info('Reset attributes')
+        return
+        
 
     def _iterate_hotel(self):
         """ Iterate over hotel pages and scrape data """
@@ -316,6 +344,7 @@ class HotelIterator:
             self._load_hotel_page()
             self._scrape_hotel()
             self._update_insert()
+            self._reset_attributes()
             logging.info('Finished hotel')
             logging.info('-'*50)
         logging.info('Finished iterating hotels')
