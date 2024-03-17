@@ -84,7 +84,7 @@ class ReviewIterator:
     
     def _get_hotel_from_db(self):
         """ Get hotel from db """
-        self.cursor.execute('select id, url from result where reviews>100 and hotel_scraped_flag=1 and reviews_scraped_flag=0 order by random() limit 1;')
+        self.cursor.execute('select id, url from result where reviews<100 and hotel_scraped_flag=1 and reviews_scraped_flag=0 order by random() limit 1;')
         row = self.cursor.fetchone()
         if row is not None:
             self.hotel_id, self.hotel_url = row
@@ -231,12 +231,35 @@ class ReviewIterator:
         logging.info('-'*50)
         return
     
+    def _insert_review(self):
+        """ Insert review into db """
+        return
+        self.cursor.execute(f"""
+
+        """)
+        self.connection.commit()
+        logging.info('Inserted review')
+        return
+    
+    def _insert_review_user(self):
+        """ Insert review into db """
+        return
+        self.cursor.execute(f"""
+            
+        """)
+        self.connection.commit()
+        logging.info('Inserted review')
+        return
+    
+
+    
     def _scrape_review_page(self):
         """ Scrape the review page """
         self.comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
         for self.comment_box in self.comment_boxes:
             self._scrape_review()
             self._insert_review()
+            self._insert_review_user()
             self._reset_attributes()
         logging.info('Scraped review page')
         return
@@ -247,13 +270,14 @@ class ReviewIterator:
         i = 0
         while i < 3:
             try:
-                wait = WebDriverWait(self.driver, 50)
+                wait = WebDriverWait(self.driver, 10)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
                 self._continue_hotel_flag = True
                 break
             except Exception as e:
+                i += 1
                 logging.error(e)
                 logging.error('Next page button not found')
                 self._wait_humanly()
@@ -280,12 +304,17 @@ class ReviewIterator:
                 continue
         return
 
-
-
-
-
-
-
+    def _update_reviews_flag(self):
+        """ Update reviews flag in db """
+        # self.cursor.execute(f"""
+        #     update result
+        #     set reviews_scraped_flag=1
+        #     where id={self.hotel_id}
+        # """)
+        self.cursor.execute('select 1') # test
+        self.connection.commit()
+        logging.info('Updated reviews flag')
+        return
 
 
     def _iterate_reviews_pages(self):
@@ -298,12 +327,20 @@ class ReviewIterator:
     
     def _iterate_hotels(self):
         """ Get hotel from db, setup the first page, and start iterating through reviews pages. Update flag at the end """
-        while self.continue_flag:
-            self._get_hotel_from_db()
-            self._load_hotel_page()
-            self._push_all_languages_button()
-            self._iterate_reviews_pages()
-            self._update_reviews_flag()
+        while True:
+            try:
+                self._get_hotel_from_db()
+                if self.continue_flag == False:
+                    break
+                self._load_hotel_page()
+                self._push_all_languages_button()
+                self._iterate_reviews_pages()
+                self._update_reviews_flag()
+            except Exception as e:
+                logging.error(e)
+                logging.error('Error in hotel, skipping to next hotel')
+                self._wait_humanly()
+                continue
         logging.info('Iterated all hotels. Done')
         return
 
