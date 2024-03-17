@@ -6,7 +6,7 @@ from selenium import webdriver
 from geopy.geocoders import Nominatim
 
 
-logging.basicConfig(filename='logs/hotel_iterator.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
+logging.basicConfig(filename='logs/hotel_iterator.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
 class HotelIterator:
@@ -48,8 +48,8 @@ class HotelIterator:
     
     @staticmethod
     def _wait_humanly():
-        """ Wait a random time between 20 and 40 seconds """
-        time_to_sleep = random.uniform(20, 40)
+        """ Wait a random time between 10 and 20 seconds """
+        time_to_sleep = random.uniform(10, 20)
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
         return
@@ -347,7 +347,7 @@ class HotelIterator:
 
     def _get_hotel_from_db(self):
         """ Get hotel from db """
-        self.cursor.execute('select id, url from result where reviews>100 and hotel_scraped_flag=0 order by random() limit 1;')
+        self.cursor.execute('select id, url from result where reviews>50 and hotel_scraped_flag=0 order by random() limit 1;')
         # self.cursor.execute('select id, url from result where id=414003738016358719 and hotel_scraped_flag=0 order by random() limit 1;')
         row = self.cursor.fetchone()
         if row is not None:
