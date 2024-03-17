@@ -48,8 +48,8 @@ class HotelIterator:
     
     @staticmethod
     def _wait_humanly():
-        """ Wait a random time between 5 and 15 seconds """
-        time_to_sleep = random.uniform(5, 15)
+        """ Wait a random time between 5 and 8 seconds """
+        time_to_sleep = random.uniform(5, 8)
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
         return
@@ -279,7 +279,7 @@ class HotelIterator:
         self.hotel_nearby_restaurants = self.driver.find_elements('class name', 'CllfH')[1].text.split(' ')[0].replace(',','')
         self.hotel_nearby_attractions = self.driver.find_elements('class name', 'CllfH')[2].text.split(' ')[0].replace(',','')
         self.hotel_walkers_score = self.driver.find_element('class name', 'UQxjK.H-').text if self.driver.find_elements('class name', 'UQxjK.H-') != [] else None
-        self.hotel_pictures = self.driver.find_element('class name', 'GuzzA').text.split('(')[-1].replace(')','').replace(',','')
+        self.hotel_pictures = self.driver.find_element('class name', 'GuzzA').text.split('(')[-1].replace(')','').replace(',','') if self.driver.find_elements('class name', 'GuzzA') != [] else 0
         self.hotel_average_night_price = self.driver.find_element('class name', 'biGQs._P.pZUbB.fOtGX').text.split('$')[-1].split(' ')[0].replace(',','') if self.driver.find_elements('class name', 'biGQs._P.pZUbB.fOtGX') != [] else None
         self.hotel_reviews_summary = self.driver.find_element('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd').text if self.driver.find_elements('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd') != [] else 'No reviews summary'
         logging.info('Scraped hotel')
@@ -347,7 +347,7 @@ class HotelIterator:
 
     def _get_hotel_from_db(self):
         """ Get hotel from db """
-        self.cursor.execute('select id, url from result where reviews>50 and hotel_scraped_flag=0 order by random() limit 1;')
+        self.cursor.execute('select id, url from result where reviews>0 and hotel_scraped_flag=0 order by random() limit 1;')
         # self.cursor.execute('select id, url from result where id=414003738016358719 and hotel_scraped_flag=0 order by random() limit 1;')
         row = self.cursor.fetchone()
         if row is not None:
