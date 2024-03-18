@@ -2,6 +2,7 @@ import logging
 import time
 import random
 import sqlite3
+import hashlib
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -26,8 +27,8 @@ class ReviewIterator:
         self.cursor = None
         self.continue_flag = True
         self.continue_hotel_flag = True
-        self.scraped_reviews_number = None
-        self.hotel_reviews_number = None
+        self.scraped_reviews_number = 0
+        self.hotel_reviews_number = 0
         self.scraped_all_reviews_flag = False
         # review attributes
         self.hotel_id = None
@@ -69,6 +70,16 @@ class ReviewIterator:
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
         return
+    
+    @staticmethod
+    def _get_hashed_id(string):
+        # Calculate the SHA-256 hash of the string
+        hash_value = hashlib.sha256(string.encode()).hexdigest()
+        # Convert the hexadecimal hash value to an integer
+        hash_int = int(hash_value, 16)
+        # Truncate the integer to 20 digits. It has sufficient collision resistance for this use case
+        truncated_hash = hash_int % (10 ** 20)
+        return truncated_hash
 
     def _get_driver(self):
         """ Return a driver to use selenium """
@@ -135,6 +146,9 @@ class ReviewIterator:
     
     def _reset_attributes(self):
         """ Reset attributes to None """
+        self.scraped_reviews_number = 0
+        self.hotel_reviews_number = 0
+        self.scraped_all_reviews_flag = False
         # review
         self.review_url = None
         self.review_id = None
@@ -168,7 +182,7 @@ class ReviewIterator:
         """ Scrape single review """
         # review
         self.review_url = self.comment_box.find_element('class name', 'joSMp.MI._S.b.S6.H5.Cj._a').find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ').get_attribute('href')
-        self.review_id = abs(hash(self.review_url))
+        self.review_id = self._get_hashed_id(self.review_url)
         self.review_title = self.comment_box.find_element('class name', 'JbGkU.Cj').text
         self.review_text = self.comment_box.find_element('class name', 'orRIx.Ci._a.C').text
         self.review_rating = self.comment_box.find_element('class name', 'IaVba.F1').text.split(' ')[0]
@@ -193,7 +207,7 @@ class ReviewIterator:
         self.revuew_response_language = detect(self.review_response_text) if self.review_response_text else None
         # review user
         self.review_user_url = self.comment_box.find_element('class name', 'MjDLG.VKCbE').get_attribute('href')
-        self.review_user_id = abs(hash(self.review_user_url))
+        self.review_user_id = self._get_hashed_id(self.review_user_url)
         self.review_user_name = self.comment_box.find_element('class name', 'MjDLG.VKCbE').get_attribute('href').split('Profile/')[-1]
         self.review_user_name_shown = self.comment_box.find_element('class name', 'MjDLG.VKCbE').text
         for review_user_info in self.comment_box.find_elements('class name', 'sIZXw.S2.H2.Ch.d'):
@@ -222,7 +236,7 @@ class ReviewIterator:
         logging.info(f'Review language: {self.review_language}')
         # review response
         logging.info(f'Review response from: {self.review_response_from}')
-        logging.info(f'Review response text: {self.review_response_text}')
+        logging.info(f'Review response text: {self.review_response_text[:30] if self.review_response_text is not None else None} [...] {self.review_response_text[-30:] if self.review_response_text is not None else None}')
         logging.info(f'Review response date: {self.review_response_date}')
         logging.info(f'Review response language: {self.revuew_response_language}')
         # review user
@@ -357,12 +371,11 @@ class ReviewIterator:
 
     def _update_reviews_flag(self):
         """ Update reviews flag in db """
-        # self.cursor.execute(f"""
-        #     update result
-        #     set reviews_scraped_flag=1
-        #     where id={self.hotel_id}
-        # """)
-        self.cursor.execute('select 1') # test
+        self.cursor.execute(f"""
+            update result
+            set reviews_scraped_flag=1
+            where id={self.hotel_id}
+        """)
         self.connection.commit()
         logging.info('Updated reviews flag')
         return
@@ -371,7 +384,6 @@ class ReviewIterator:
         """ Check if the number of scraped reviews match the number of reviews in the page """
         self.scraped_reviews_number = self.cursor.execute(f'select count(*) from REVIEW where hotel_id={self.hotel_id}').fetchone()[0]
         logging.info(f'Scraped reviews number: {self.scraped_reviews_number}')
-        self.scraped_reviews_number = 0 # test
         if self.scraped_reviews_number == self.hotel_reviews_number:
             self.scraped_all_reviews_flag = True
         else:
@@ -408,8 +420,6 @@ class ReviewIterator:
                 logging.error('Error in hotel, skipping to next hotel')
                 self._wait_humanly()
                 continue
-
-            break # test
         logging.info('Iterated all hotels. Done')
         return
 

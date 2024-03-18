@@ -2,6 +2,7 @@ import logging
 import time
 import random
 import sqlite3
+import hashlib
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
@@ -30,6 +31,16 @@ class SearchIterator:
         self.continue_flag_retries = 0
         return
     
+    @staticmethod
+    def _get_hashed_id(string):
+        # Calculate the SHA-256 hash of the string
+        hash_value = hashlib.sha256(string.encode()).hexdigest()
+        # Convert the hexadecimal hash value to an integer
+        hash_int = int(hash_value, 16)
+        # Truncate the integer to 20 digits. It has sufficient collision resistance for this use case
+        truncated_hash = hash_int % (10 ** 20)
+        return truncated_hash
+    
     def _get_driver(self):
         """ Return a driver to use selenium """
         chrome_options = webdriver.ChromeOptions()
@@ -45,6 +56,8 @@ class SearchIterator:
         self.cursor = self.connection.cursor()
         logging.info('Got cursor')
         return
+    
+
     
     def _increase_page(self):
         """ Increase page number """
@@ -116,7 +129,7 @@ class SearchIterator:
         self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0] if self.result_reviews != '0' else -1
         self.result_sponsored_flag = self.result_element.find_elements('class name', 'ngpKT.WywIO') != []
         self.result_rank = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored_flag == False else -1
-        self.result_id = abs(hash(self.result_url)) # sufficient collision resistance for this use case
+        self.result_id = self._get_hashed_id(self.result_url)
         logging.info(f'Scraped result')
         logging.info(f'Id: {self.result_id}')
         logging.info(f'URL: {self.result_url}')
