@@ -98,7 +98,7 @@ class ReviewIterator:
         return
     
     def _get_hotel_from_db(self):
-        """ Get hotel from db """
+        """ Get hotel from db """ # test reviews<100
         self.cursor.execute('select id, url from result where reviews<100 and hotel_scraped_flag=1 and reviews_scraped_flag=0 order by random() limit 1;')
         row = self.cursor.fetchone()
         if row is not None:
@@ -404,6 +404,7 @@ class ReviewIterator:
         """ Get hotel from db, setup the first page, and start iterating through reviews pages. Update flag at the end """
         while True:
             try:
+                self._continue_hotel_flag = True
                 self._get_hotel_from_db()
                 if self.continue_flag == False:
                     break
