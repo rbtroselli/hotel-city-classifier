@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 
 url_template = 'https://www.tripadvisor.com/Hotels-g187791-oa{}-Rome_Lazio-Hotels.html'
-logging.basicConfig(filename='logs/page_iterator.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
+logging.basicConfig(filename='logs/result_iterator.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
 
 class SearchIterator:
@@ -111,7 +111,7 @@ class SearchIterator:
     
     def _scrape_result(self):
         """ Scrape result element """
-        self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href')
+        self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href').split('?')[0]
         self.result_reviews = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
         self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0] if self.result_reviews != '0' else -1
         self.result_sponsored_flag = self.result_element.find_elements('class name', 'ngpKT.WywIO') != []
@@ -183,7 +183,7 @@ class SearchIterator:
             logging.info('-'*50)
             return True
 
-    def _iterate_page(self):
+    def _iterate_results_pages(self):
         """ Cycle through search pages. Break if continue_flag is False, after 10 retries """
         while True:
             self._increase_page()
@@ -198,7 +198,7 @@ class SearchIterator:
         try:
             self._get_driver()
             self._get_cursor()
-            self._iterate_page()
+            self._iterate_results_pages()
         finally:
             time.sleep(600)
             self.driver.quit()
