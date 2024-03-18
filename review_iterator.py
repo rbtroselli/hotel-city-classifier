@@ -6,11 +6,12 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
+from selenium.common.exceptions import TimeoutException
 from langdetect import detect
 
 
-# logging.basicConfig(filename='logs/review_iterator.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
+logging.basicConfig(filename='logs/review_iterator.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
 months_short_dict = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
 months_long_dict = {'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6, 'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12}
@@ -25,6 +26,9 @@ class ReviewIterator:
         self.cursor = None
         self.continue_flag = True
         self.continue_hotel_flag = True
+        self.scraped_reviews_number = None
+        self.hotel_reviews_number = None
+        self.scraped_all_reviews_flag = False
         # review attributes
         self.hotel_id = None
         self.hotel_url = None
@@ -205,8 +209,9 @@ class ReviewIterator:
         logging.info(f'Review url: {self.review_url}')
         logging.info(f'Review id: {self.review_id}')
         logging.info(f'Review title: {self.review_title}')
-        logging.info(f'Review text: {self.review_text}')
+        logging.info(f'Review text: {self.review_text[:30]} [...] {self.review_text[-30:]}')
         logging.info(f'Review rating: {self.review_rating}')
+        logging.info(f'Review date [only as a check]: {review_date}')
         logging.info(f'Review month: {self.review_month}')
         logging.info(f'Review year: {self.review_year}')
         logging.info(f'Review date of stay [only as a check]: {review_date_of_stay}')
@@ -215,7 +220,6 @@ class ReviewIterator:
         logging.info(f'Review likes: {self.review_likes}')
         logging.info(f'Review pics flag: {self.review_pics_flag}')
         logging.info(f'Review language: {self.review_language}')
-        logging.info(f'Review date [only as a check]: {review_date}')
         # review response
         logging.info(f'Review response from: {self.review_response_from}')
         logging.info(f'Review response text: {self.review_response_text}')
@@ -230,7 +234,6 @@ class ReviewIterator:
         logging.info(f'Review user helpful votes: {self.review_user_helpful_votes}')
         logging.info(f'Review user location: {self.review_user_location}')
         logging.info('Scraped review')
-        logging.info('-'*50)
         return
     
     def _delete_insert_review(self):
@@ -296,6 +299,7 @@ class ReviewIterator:
             self._delete_insert_review()
             self._delete_insert_review_user()
             self._reset_attributes()
+            logging.info('-'*50)
         logging.info('Scraped review page')
         return
 
@@ -305,19 +309,25 @@ class ReviewIterator:
         i = 0
         while i < 3:
             try:
-                wait = WebDriverWait(self.driver, 3)
+                wait = WebDriverWait(self.driver, 2)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
                 self.continue_hotel_flag = True
                 break
-            except Exception as e:
+            except TimeoutException:
                 i += 1
-                logging.error(e)
-                logging.error('Next page button not found')
-                self._wait_humanly()
+                logging.error(f'Next page button not found, retry: {i}')
                 self.continue_hotel_flag = False
                 continue
+            # except Exception as e:
+            #     i += 1
+            #     traceback.print_exc()
+            #     logging.error(e)
+            #     logging.error('Next page button not found')
+            #     self._wait_humanly()
+            #     self.continue_hotel_flag = False
+            #     continue
         return
 
     def _push_all_languages_button(self):
@@ -339,6 +349,12 @@ class ReviewIterator:
                 continue
         return
 
+    def _get_hotel_reviews_number(self):
+        """ Get hotel reviews number, to check if they've been taken all before finishing and updating flag """
+        self.hotel_reviews_number = int(self.driver.find_element('class name', 'hvAtG').text.split(' ')[0].replace(',', ''))
+        logging.info(f'Hotel reviews number: {self.hotel_reviews_number}')
+        return
+
     def _update_reviews_flag(self):
         """ Update reviews flag in db """
         # self.cursor.execute(f"""
@@ -349,6 +365,18 @@ class ReviewIterator:
         self.cursor.execute('select 1') # test
         self.connection.commit()
         logging.info('Updated reviews flag')
+        return
+    
+    def _check_scraped_reviews_number(self):
+        """ Check if the number of scraped reviews match the number of reviews in the page """
+        self.scraped_reviews_number = self.cursor.execute(f'select count(*) from REVIEW where hotel_id={self.hotel_id}').fetchone()[0]
+        logging.info(f'Scraped reviews number: {self.scraped_reviews_number}')
+        self.scraped_reviews_number = 0 # test
+        if self.scraped_reviews_number == self.hotel_reviews_number:
+            self.scraped_all_reviews_flag = True
+        else:
+            self.scraped_all_reviews_flag = False
+        logging.info(f'Checked scraped reviews number. Scraped all reviews: {self.scraped_all_reviews_flag}')
         return
 
 
@@ -370,6 +398,10 @@ class ReviewIterator:
                 self._load_hotel_page()
                 self._push_all_languages_button()
                 self._iterate_reviews_pages()
+                self._get_hotel_reviews_number()
+                self._check_scraped_reviews_number()
+                if self.scraped_all_reviews_flag == False:
+                    raise Exception('Missing reviews for the hotel, skipping to next hotel')
                 self._update_reviews_flag()
             except Exception as e:
                 logging.error(e)
@@ -401,31 +433,3 @@ class ReviewIterator:
 if __name__ == '__main__':
     ri = ReviewIterator()
     ri.run()
-
-
-
-
-
-"""
-fare delete insert per i commenti. non posso fare un unico commit, per evitare perdite grosse di dati?
-aggiornare il flag solo alla fine
-
-"""
-
-
-
-"""
-https://www.tripadvisor.com/Hotel_Review-g187791-d647933-Reviews-Vatican_Vista-Rome_Lazio.html
-
-Vado alla pagina dell'hotel ^
-Clicco su TUTTE LE LINGUE
-
-ciclo:
-Scrapo la pagina
-Clicco bottone avanti
-
-Inserire qualche check per vedere se la pagina è finita (non c'è più il bottone, e il numero di review matcha a quelle che leggo nella pagina a meno di epsilon?)
-
-Quando ho finito di scrapare aggiornare flag review_scraped a 1 nel db
-
-"""
