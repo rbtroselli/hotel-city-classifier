@@ -38,7 +38,7 @@ class SearchIterator:
         # Convert the hexadecimal hash value to an integer
         hash_int = int(hash_value, 16)
         # Truncate the integer to 20 digits. It has sufficient collision resistance for this use case
-        truncated_hash = hash_int % (10 ** 20)
+        truncated_hash = hash_int % (10 ** 18)
         return truncated_hash
     
     def _get_driver(self):

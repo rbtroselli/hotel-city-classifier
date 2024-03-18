@@ -78,7 +78,7 @@ class ReviewIterator:
         # Convert the hexadecimal hash value to an integer
         hash_int = int(hash_value, 16)
         # Truncate the integer to 20 digits. It has sufficient collision resistance for this use case
-        truncated_hash = hash_int % (10 ** 20)
+        truncated_hash = hash_int % (10 ** 18)
         return truncated_hash
 
     def _get_driver(self):
@@ -211,9 +211,9 @@ class ReviewIterator:
         self.review_user_name = self.comment_box.find_element('class name', 'MjDLG.VKCbE').get_attribute('href').split('Profile/')[-1]
         self.review_user_name_shown = self.comment_box.find_element('class name', 'MjDLG.VKCbE').text
         for review_user_info in self.comment_box.find_elements('class name', 'sIZXw.S2.H2.Ch.d'):
-            if 'contributions' in review_user_info.text:
+            if 'contribution' in review_user_info.text:
                 self.review_user_contributions = review_user_info.text.split(' ')[0].replace(',', '')
-            elif 'helpful votes' in review_user_info.text:
+            elif 'helpful vote' in review_user_info.text:
                 self.review_user_helpful_votes = review_user_info.text.split(' ')[0].replace(',', '')
             else:
                 self.review_user_location = review_user_info.text
