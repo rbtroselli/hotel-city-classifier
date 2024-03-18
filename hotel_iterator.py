@@ -48,8 +48,8 @@ class HotelIterator:
     
     @staticmethod
     def _wait_humanly():
-        """ Wait a random time between 5 and 8 seconds """
-        time_to_sleep = random.uniform(5, 8)
+        """ Wait a random time between 3 and 6 seconds """
+        time_to_sleep = random.uniform(3, 6)
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
         return

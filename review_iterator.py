@@ -33,13 +33,13 @@ class ReviewIterator:
         self.review_title = None
         self.review_text = None
         self.review_rating = None
-        self.review_year_of_stay = None
+        self.review_month = None
+        self.review_year = None
         self.review_month_of_stay = None
+        self.review_year_of_stay = None
         self.review_likes = None
         self.review_pics_flag = None
         self.review_language = None
-        self.review_month = None
-        self.review_year = None
         # review response attributes
         self.review_response_from = None
         self.review_response_text = None
@@ -60,8 +60,8 @@ class ReviewIterator:
 
     @staticmethod
     def _wait_humanly():
-        """ Wait a random time between 10 and 20 seconds """
-        time_to_sleep = random.uniform(5, 15)
+        """ Wait a random time between 3 and 6 seconds """
+        time_to_sleep = random.uniform(3, 6)
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
         return
@@ -137,13 +137,13 @@ class ReviewIterator:
         self.review_title = None
         self.review_text = None
         self.review_rating = None
-        self.review_year_of_stay = None
+        self.review_month = None
+        self.review_year = None
         self.review_month_of_stay = None
+        self.review_year_of_stay = None
         self.review_likes = None
         self.review_pics_flag = None
         self.review_language = None
-        self.review_month = None
-        self.review_year = None
         # review response
         self.review_response_from = None
         self.review_response_text = None
@@ -168,12 +168,6 @@ class ReviewIterator:
         self.review_title = self.comment_box.find_element('class name', 'JbGkU.Cj').text
         self.review_text = self.comment_box.find_element('class name', 'orRIx.Ci._a.C').text
         self.review_rating = self.comment_box.find_element('class name', 'IaVba.F1').text.split(' ')[0]
-        review_date_of_stay = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text # only print for check
-        self.review_year_of_stay = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-1]
-        self.review_month_of_stay = months_long_dict[self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-2].lower()]
-        self.review_likes = self.comment_box.find_element('class name', 'biGQs._P.FwFXZ').text
-        self.review_pics_flag = True if self.comment_box.find_elements('class name', 'Ctnpg._T.lqJaB') != [] else False
-        self.review_language = detect(self.review_text)
         if 'today' in self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower():
             review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower()
             self.review_month = time.strftime('%m')
@@ -182,6 +176,12 @@ class ReviewIterator:
             review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text # only print for check
             self.review_month = months_short_dict[self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.split(' ')[-2].lower()]
             self.review_year = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.split(' ')[-1]
+        review_date_of_stay = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else 'NA'
+        self.review_month_of_stay = months_long_dict[self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-2].lower()] if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else -1
+        self.review_year_of_stay = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-1] if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else -1
+        self.review_likes = self.comment_box.find_element('class name', 'biGQs._P.FwFXZ').text
+        self.review_pics_flag = True if self.comment_box.find_elements('class name', 'Ctnpg._T.lqJaB') != [] else False
+        self.review_language = detect(self.review_text)
         # review response
         self.review_response_from = self.comment_box.find_element('class name', 'MFqgB').text if self.comment_box.find_elements('class name', 'MFqgB') else None
         self.review_response_text = self.comment_box.find_element('class name', 'XCFtd').text if self.comment_box.find_elements('class name', 'XCFtd') else None
@@ -199,21 +199,23 @@ class ReviewIterator:
                 self.review_user_helpful_votes = review_user_info.text.split(' ')[0].replace(',', '')
             else:
                 self.review_user_location = review_user_info.text
+        # hotel
+        logging.info(f'Hotel url: {self.hotel_url}')
         # review
         logging.info(f'Review url: {self.review_url}')
         logging.info(f'Review id: {self.review_id}')
         logging.info(f'Review title: {self.review_title}')
         logging.info(f'Review text: {self.review_text}')
         logging.info(f'Review rating: {self.review_rating}')
+        logging.info(f'Review month: {self.review_month}')
+        logging.info(f'Review year: {self.review_year}')
         logging.info(f'Review date of stay [only as a check]: {review_date_of_stay}')
-        logging.info(f'Review year of stay: {self.review_year_of_stay}')
         logging.info(f'Review month of stay: {self.review_month_of_stay}')
+        logging.info(f'Review year of stay: {self.review_year_of_stay}')
         logging.info(f'Review likes: {self.review_likes}')
         logging.info(f'Review pics flag: {self.review_pics_flag}')
         logging.info(f'Review language: {self.review_language}')
         logging.info(f'Review date [only as a check]: {review_date}')
-        logging.info(f'Review month: {self.review_month}')
-        logging.info(f'Review year: {self.review_year}')
         # review response
         logging.info(f'Review response from: {self.review_response_from}')
         logging.info(f'Review response text: {self.review_response_text}')
@@ -231,35 +233,68 @@ class ReviewIterator:
         logging.info('-'*50)
         return
     
-    def _insert_review(self):
+    def _delete_insert_review(self):
         """ Insert review into db """
-        return
+        self.cursor.execute(f'delete from REVIEW where id={self.review_id}')
         self.cursor.execute(f"""
-
+            insert into REVIEW (
+                id, url, title, text, rating, month_of_review, year_of_review, month_of_stay, 
+                year_of_stay, likes, pics_flag, language, response_from, response_text, 
+                response_date, response_language, user_id, hotel_id
+            )
+            values (
+                {self.review_id},
+                '{self.review_url}',
+                '{self.review_title.replace("'","''")}',
+                '{self.review_text.replace("'","''")}',
+                {self.review_rating},
+                {self.review_month},
+                {self.review_year},
+                {self.review_month_of_stay},
+                {self.review_year_of_stay},
+                {self.review_likes},
+                {self.review_pics_flag},
+                '{self.review_language}',
+                '{self.review_response_from.replace("'","''") if self.review_response_from is not None else 'NA'}',
+                '{self.review_response_text.replace("'","''") if self.review_response_text is not None else 'NA'}',
+                '{self.review_response_date if self.review_response_date is not None else 'NA'}',
+                '{self.revuew_response_language if self.revuew_response_language is not None else 'NA'}',
+                {self.review_user_id},
+                {self.hotel_id}
+            );
+        """)
+        self.connection.commit()
+        logging.info('Deleted-inserted review')
+        return
+    
+    def _delete_insert_review_user(self):
+        """ Insert review into db """
+        self.cursor.execute(f'delete from USER where id={self.review_user_id}')
+        self.cursor.execute(f"""
+            insert into USER (
+                id, url, name, name_shown, contributions, helpful_votes, location
+            )
+            values (
+                {self.review_user_id},
+                '{self.review_user_url}',
+                '{self.review_user_name.replace("'","''")}',
+                '{self.review_user_name_shown.replace("'","''")}',
+                {self.review_user_contributions if self.review_user_contributions is not None else -1},
+                {self.review_user_helpful_votes if self.review_user_helpful_votes is not None else -1},
+                '{self.review_user_location.replace("'","''") if self.review_user_location is not None else 'NA'}'
+            );
         """)
         self.connection.commit()
         logging.info('Inserted review')
         return
-    
-    def _insert_review_user(self):
-        """ Insert review into db """
-        return
-        self.cursor.execute(f"""
-            
-        """)
-        self.connection.commit()
-        logging.info('Inserted review')
-        return
-    
-
     
     def _scrape_review_page(self):
         """ Scrape the review page """
         self.comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
         for self.comment_box in self.comment_boxes:
             self._scrape_review()
-            self._insert_review()
-            self._insert_review_user()
+            self._delete_insert_review()
+            self._delete_insert_review_user()
             self._reset_attributes()
         logging.info('Scraped review page')
         return
@@ -270,18 +305,18 @@ class ReviewIterator:
         i = 0
         while i < 3:
             try:
-                wait = WebDriverWait(self.driver, 10)
+                wait = WebDriverWait(self.driver, 3)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
-                self._continue_hotel_flag = True
+                self.continue_hotel_flag = True
                 break
             except Exception as e:
                 i += 1
                 logging.error(e)
                 logging.error('Next page button not found')
                 self._wait_humanly()
-                self._continue_hotel_flag = False
+                self.continue_hotel_flag = False
                 continue
         return
 
@@ -319,7 +354,7 @@ class ReviewIterator:
 
     def _iterate_reviews_pages(self):
         """ Iterate through reviews pages """
-        while self.continue_hotel_flag:
+        while self.continue_hotel_flag == True:
             self._scrape_review_page()
             self._increase_page()
         logging.info('Iterated all reviews pages for the hotel. Going to next hotel')
@@ -341,6 +376,8 @@ class ReviewIterator:
                 logging.error('Error in hotel, skipping to next hotel')
                 self._wait_humanly()
                 continue
+
+            break # test
         logging.info('Iterated all hotels. Done')
         return
 
