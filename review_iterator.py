@@ -98,8 +98,8 @@ class ReviewIterator:
         return
     
     def _get_hotel_from_db(self):
-        """ Get hotel from db """ # test reviews<100
-        self.cursor.execute('select id, url from result where reviews<100 and hotel_scraped_flag=1 and reviews_scraped_flag=0 order by random() limit 1;')
+        """ Get hotel from db """
+        self.cursor.execute('select id, url from result where hotel_scraped_flag=1 and reviews_scraped_flag=0 order by random() limit 1;')
         row = self.cursor.fetchone()
         if row is not None:
             self.hotel_id, self.hotel_url = row
