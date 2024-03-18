@@ -323,7 +323,7 @@ class ReviewIterator:
         i = 0
         while i < 3:
             try:
-                wait = WebDriverWait(self.driver, 2)
+                wait = WebDriverWait(self.driver, 1)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
@@ -404,7 +404,7 @@ class ReviewIterator:
         """ Get hotel from db, setup the first page, and start iterating through reviews pages. Update flag at the end """
         while True:
             try:
-                self._continue_hotel_flag = True
+                self.continue_hotel_flag = True
                 self._get_hotel_from_db()
                 if self.continue_flag == False:
                     break
