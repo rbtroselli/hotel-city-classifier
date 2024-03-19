@@ -280,8 +280,8 @@ class ReviewIterator:
                 {self.hotel_id}
             );
         """)
-        self.connection.commit()
-        logging.info('Deleted-inserted review')
+        # self.connection.commit()
+        logging.info('Deleted-inserted review. Did not commit yet')
         return
     
     def _delete_insert_review_user(self):
@@ -301,8 +301,8 @@ class ReviewIterator:
                 '{self.review_user_location.replace("'","''") if self.review_user_location is not None else 'NA'}'
             );
         """)
-        self.connection.commit()
-        logging.info('Inserted review')
+        # self.connection.commit()
+        logging.info('Deleted-inserted review. Did not commit yet')
         return
     
     def _scrape_review_page(self):
@@ -314,7 +314,8 @@ class ReviewIterator:
             self._delete_insert_review_user()
             self._reset_attributes()
             logging.info('-'*50)
-        logging.info('Scraped review page')
+        self.connection.commit()
+        logging.info('Scraped review page. Committed reviews and users delete-inserts to db')
         return
 
 
@@ -327,6 +328,7 @@ class ReviewIterator:
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'azLzJ.MI.Gi.z.Z.BB.kYVoW'))) # wait for reviews to load
                 self.continue_hotel_flag = True
                 break
             except TimeoutException:
@@ -334,14 +336,14 @@ class ReviewIterator:
                 logging.error(f'Next page button not found, retry: {i}')
                 self.continue_hotel_flag = False
                 continue
-            # except Exception as e:
-            #     i += 1
-            #     traceback.print_exc()
-            #     logging.error(e)
-            #     logging.error('Next page button not found')
-            #     self._wait_humanly()
-            #     self.continue_hotel_flag = False
-            #     continue
+            except Exception as e:
+                i += 1
+                # traceback.print_exc()
+                logging.error(e)
+                logging.error('Error')
+                self._wait_humanly()
+                self.continue_hotel_flag = False
+                continue
         return
 
     def _push_all_languages_button(self):
