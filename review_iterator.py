@@ -3,6 +3,7 @@ import time
 import random
 import sqlite3
 import hashlib
+import traceback
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -302,7 +303,7 @@ class ReviewIterator:
             );
         """)
         # self.connection.commit()
-        logging.info('Deleted-inserted review. Did not commit yet')
+        logging.info('Deleted-inserted review user. Did not commit yet')
         return
     
     def _scrape_review_page(self):
@@ -328,7 +329,7 @@ class ReviewIterator:
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'azLzJ.MI.Gi.z.Z.BB.kYVoW'))) # wait for reviews to load
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'azLzJ.MI.Gi.z.Z.BB.kYVoW'))) # wait for reviews to load
                 self.continue_hotel_flag = True
                 break
             except TimeoutException:
@@ -338,7 +339,7 @@ class ReviewIterator:
                 continue
             except Exception as e:
                 i += 1
-                # traceback.print_exc()
+                logging.error(traceback.print_exc())
                 logging.error(e)
                 logging.error('Error')
                 self._wait_humanly()
@@ -419,6 +420,7 @@ class ReviewIterator:
                     raise Exception('Missing reviews for the hotel, skipping to next hotel')
                 self._update_reviews_flag()
             except Exception as e:
+                logging.error(traceback.print_exc())
                 logging.error(e)
                 logging.error('Error in hotel, skipping to next hotel')
                 self._wait_humanly()
