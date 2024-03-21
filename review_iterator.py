@@ -191,6 +191,11 @@ class ReviewIterator:
             review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower()
             self.review_month = time.strftime('%m')
             self.review_year = time.strftime('%Y')
+        elif 'yesterday' in self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower():
+            review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower()
+            yesterday = time.strftime('%Y-%m-%d', time.localtime(time.time() - 86400))
+            self.review_month = yesterday.split('-')[1]
+            self.review_year = yesterday.split('-')[0]
         else:
             review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text # only print for check
             self.review_month = months_short_dict[self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.split(' ')[-2].lower()]
