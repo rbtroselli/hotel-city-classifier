@@ -3,7 +3,6 @@ import time
 import random
 import sqlite3
 import hashlib
-import traceback
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -140,6 +139,7 @@ class ReviewIterator:
                 retries += 1
                 logging.error(e)
                 logging.error(f'Did not load hotel page, retry {retries}')
+                logging.exception('An error occurred')
                 self._wait_humanly()
                 continue
         return
@@ -344,9 +344,9 @@ class ReviewIterator:
                 continue
             except Exception as e:
                 i += 1
-                logging.error(traceback.print_exc())
                 logging.error(e)
                 logging.error('Error')
+                logging.exception('An error occurred')
                 self._wait_humanly()
                 self.continue_hotel_flag = False
                 continue
@@ -367,6 +367,7 @@ class ReviewIterator:
                 i += 1
                 logging.error(e)
                 logging.error('All languages button not found')
+                logging.exception('An error occurred')
                 self._wait_humanly()
                 continue
         return
@@ -425,9 +426,9 @@ class ReviewIterator:
                     raise Exception('Missing reviews for the hotel, skipping to next hotel')
                 self._update_reviews_flag()
             except Exception as e:
-                logging.error(traceback.print_exc())
                 logging.error(e)
                 logging.error('Error in hotel, skipping to next hotel')
+                logging.exception('An error occurred')
                 self._wait_humanly()
                 continue
         logging.info('Iterated all hotels. Done')
@@ -442,6 +443,8 @@ class ReviewIterator:
             self._iterate_hotels()
         except Exception as e:
             logging.error(e)
+            logging.error('Error in run')
+            logging.exception('An error occurred')
             raise e
         finally:
             logging.info('Quitting')
