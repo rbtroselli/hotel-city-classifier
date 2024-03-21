@@ -1,6 +1,7 @@
 # added
 *browser/
 .DS_store
+keys.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

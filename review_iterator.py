@@ -66,8 +66,8 @@ class ReviewIterator:
 
     @staticmethod
     def _wait_humanly():
-        """ Wait a random time between 3 and 6 seconds """
-        time_to_sleep = random.uniform(3, 6)
+        """ Wait a random time between 2 and 4 seconds """
+        time_to_sleep = random.uniform(2, 4)
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
         return
@@ -325,7 +325,7 @@ class ReviewIterator:
         i = 0
         while i < 3:
             try:
-                wait = WebDriverWait(self.driver, 1)
+                wait = WebDriverWait(self.driver, 0.5)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
