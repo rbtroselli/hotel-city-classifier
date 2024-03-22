@@ -339,7 +339,7 @@ class ReviewIterator:
                 break
             except TimeoutException:
                 i += 1
-                logging.error(f'Next page button not found, retry: {i}')
+                logging.info(f'Next page button not found, retry: {i}')
                 self.continue_hotel_flag = False
                 continue
             except Exception as e:
