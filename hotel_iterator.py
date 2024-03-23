@@ -80,7 +80,7 @@ class HotelIterator:
     def _insert_data(self):
         """ Insert hotel data in db """
         query = (f"""
-            insert into HOTEL (
+            insert or replace into HOTEL (
                 id, url, name, address, latitude, longitude, altitude, description, rating, reviews, category_rank, 
                 star_rating, nearby_restaurants, nearby_attractions, walkers_score, pictures, average_night_price, 
                 price_range_min, price_range_max, property_amenities, room_features, room_types, location_rating, 
