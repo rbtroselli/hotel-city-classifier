@@ -64,9 +64,9 @@ class ReviewIterator:
         return
 
     @staticmethod
-    def _wait_humanly():
+    def _wait_humanly(min_time=2, max_time=4):
         """ Wait a random time between 2 and 4 seconds """
-        time_to_sleep = random.uniform(2, 4)
+        time_to_sleep = random.uniform(min_time, max_time)
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
         return
@@ -333,7 +333,7 @@ class ReviewIterator:
                 wait = WebDriverWait(self.driver, 0.5)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
-                self._wait_humanly()
+                self._wait_humanly(min_time=1, max_time=2) # wait less time, as del-insert of page reviews already takes 2-3 seconds
                 WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'azLzJ.MI.Gi.z.Z.BB.kYVoW'))) # wait for reviews to load
                 self.continue_hotel_flag = True
                 break
