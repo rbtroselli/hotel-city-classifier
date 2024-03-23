@@ -105,8 +105,8 @@ class SearchIterator:
         """ Insert result in db, only if continue_flag is True """
         if self.new_result_flag == True:
             self.cursor.execute(f"""
-                insert into RESULT (id, rating, reviews, url, page, sponsored, rank) 
-                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_sponsored_flag}, {self.result_rank})
+                insert or replace into RESULT (id, rating, reviews, url, page, rank) 
+                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_rank})
             """)
             self.connection.commit()
             logging.info('Inserted result')
@@ -145,6 +145,9 @@ class SearchIterator:
             self.result_element = element
             self._scrape_result()
             self._check_result()
+            if self.result_sponsored_flag == True:
+                logging.info('Sponsored result, skipping')
+                continue
             self._insert_result()
             self._check_continue()
         logging.info('Iterated all results')
