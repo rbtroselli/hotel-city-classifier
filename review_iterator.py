@@ -390,10 +390,10 @@ class ReviewIterator:
         return
     
     def _check_scraped_reviews_number(self):
-        """ Check if the number of scraped reviews match the number of reviews in the page """
+        """ Check if the number of scraped reviews match the number of reviews in the page. Add a buffer of 10 reviews, the site number may not be up to date yet """
         self.scraped_reviews_number = self.cursor.execute(f'select count(*) from REVIEW where hotel_id={self.hotel_id}').fetchone()[0]
         logging.info(f'Scraped reviews number: {self.scraped_reviews_number}')
-        if self.scraped_reviews_number == self.hotel_reviews_number:
+        if (self.scraped_reviews_number >= self.hotel_reviews_number and self.scraped_reviews_number <= self.hotel_reviews_number + 10):
             self.scraped_all_reviews_flag = True
         else:
             self.scraped_all_reviews_flag = False
