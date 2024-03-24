@@ -46,14 +46,13 @@ class HotelGeocoder:
         """ Get hotel from db """
         # get hotel that has not been geocoded
         self.cursor.execute('select id from result where hotel_geocoded_flag=0 and hotel_scraped_flag=1 order by random() limit 1;')
-        self.hotel_id = self.cursor.fetchone()[0]
+        self.hotel_id = self.cursor.fetchone()[0] if self.cursor.fetchone() is not None else None
         if self.hotel_id is None:
             self.continue_flag = False
             logging.info('No more hotels to geocode')
             return
         else:
             # get hotel address from hotel table
-            logging.info(f'select address from hotel where id={self.hotel_id};')
             self.cursor.execute(f'select address from hotel where id={self.hotel_id};')
             self.hotel_address = self.cursor.fetchone()[0]
             logging.info(f'Got hotel from db')
@@ -171,7 +170,7 @@ class HotelGeocoder:
             self._iterate_locations()
             self._insert_replace_mapquest_response()
             self._update_hotel_geocoded_flag()
-            time.sleep(0.5)
+            time.sleep(0.3)
             logging.info('Done hotel, going to the next one')
         return
 
