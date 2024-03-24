@@ -49,7 +49,7 @@ class ReviewIterator:
         self.review_response_from = None
         self.review_response_text = None
         self.review_response_date = None
-        self.revuew_response_language = None
+        self.review_response_language = None
         # review user attributes
         self.review_user_url = None
         self.review_user_id = None
@@ -167,7 +167,7 @@ class ReviewIterator:
         self.review_response_from = None
         self.review_response_text = None
         self.review_response_date = None
-        self.revuew_response_language = None
+        self.review_response_language = None
         # review user
         self.review_user_url = None
         self.review_user_id = None
@@ -210,7 +210,7 @@ class ReviewIterator:
         self.review_response_from = self.comment_box.find_element('class name', 'MFqgB').text if self.comment_box.find_elements('class name', 'MFqgB') else None
         self.review_response_text = self.comment_box.find_element('class name', 'XCFtd').text if self.comment_box.find_elements('class name', 'XCFtd') else None
         self.review_response_date = self.comment_box.find_element('class name', 'vijoR').get_attribute('title') if self.comment_box.find_elements('class name', 'vijoR') else None
-        self.revuew_response_language = detect(self.review_response_text) if self.review_response_text else None
+        self.review_response_language = detect(self.review_response_text) if self.review_response_text else None
         # review user
         self.review_user_url = self.comment_box.find_element('class name', 'MjDLG.VKCbE').get_attribute('href')
         self.review_user_id = self._get_hashed_id(self.review_user_url)
@@ -244,7 +244,7 @@ class ReviewIterator:
         logging.info(f'Review response from: {self.review_response_from}')
         logging.info(f'Review response text: {self.review_response_text[:30] if self.review_response_text is not None else None} [...] {self.review_response_text[-30:] if self.review_response_text is not None else None}')
         logging.info(f'Review response date: {self.review_response_date}')
-        logging.info(f'Review response language: {self.revuew_response_language}')
+        logging.info(f'Review response language: {self.review_response_language}')
         # review user
         logging.info(f'Review user url: {self.review_user_url}')
         logging.info(f'Review user id: {self.review_user_id}')
@@ -281,7 +281,7 @@ class ReviewIterator:
                 '{self.review_response_from.replace("'","''") if self.review_response_from is not None else 'NA'}',
                 '{self.review_response_text.replace("'","''") if self.review_response_text is not None else 'NA'}',
                 '{self.review_response_date if self.review_response_date is not None else 'NA'}',
-                '{self.revuew_response_language if self.revuew_response_language is not None else 'NA'}',
+                '{self.review_response_language if self.review_response_language is not None else 'NA'}',
                 {self.review_user_id},
                 {self.hotel_id}
             );
@@ -333,8 +333,10 @@ class ReviewIterator:
                 wait = WebDriverWait(self.driver, 0.5)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
-                self._wait_humanly(min_time=1, max_time=2) # wait less time, as del-insert of page reviews already takes 2-3 seconds
-                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'azLzJ.MI.Gi.z.Z.BB.kYVoW'))) # wait for reviews to load
+                self._wait_humanly(3,3) # wait flat time to avoid missing elements. del-insert of page reviews already takes a variable time of 2-3 seconds
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'azLzJ.MI.Gi.z.Z.BB.kYVoW'))) # wait for comment boxes to load
+                # WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'joSMp.MI._S.b.S6.H5.Cj._a'))) # wait for review urls to load
+                # WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'MjDLG.VKCbE'))) # wait for review user urls to load
                 self.continue_hotel_flag = True
                 break
             except TimeoutException:
