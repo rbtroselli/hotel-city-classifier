@@ -5,6 +5,7 @@ import hashlib
 import requests
 import json
 from keys import mapquest_key
+from hotel_geocoder_exceptions import exception_dict
 
 
 logging.basicConfig(filename='logs/hotel_geocoder.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
@@ -36,7 +37,7 @@ class HotelGeocoder:
     
     def _get_cursor(self):
         """ Get cursor to db """
-        self.connection = sqlite3.connect('hotel.db')
+        self.connection = sqlite3.connect('hotel.db', timeout=30) # increase timeout to run concurrently to scraping
         self.cursor = self.connection.cursor()
         logging.info('Got cursor')
         return
@@ -58,6 +59,10 @@ class HotelGeocoder:
             logging.info(f'Got hotel from db')
             logging.info(f'Hotel id: {self.hotel_id}')
             logging.info(f'Hotel address: {self.hotel_address}')
+            if self.hotel_id in exception_dict:
+                self.hotel_address = exception_dict[self.hotel_id]
+                logging.info(f'Found hotel in exception_dict')
+                logging.info(f'New hotel address: {self.hotel_address}')
             return
 
     def _update_hotel_geocoded_flag(self):
@@ -149,8 +154,8 @@ class HotelGeocoder:
         return
 
     def _insert_replace_mapquest_response(self):
-        """ Insert or replace hotel geocode in db """
-        self.cursor.execute(f"""insert or replace into HOTEL_MAPQUEST_RESPONSE (hotel_id, response_raw) values ({self.hotel_id}, '{json.dumps(self.mapquest_response_dict) }');""")
+        """ Insert or replace mapquest response in db, to store the raw response in case we need to debug """
+        self.cursor.execute(f"""insert or replace into HOTEL_MAPQUEST_RESPONSE (hotel_id, response_raw) values ({self.hotel_id}, '{json.dumps(self.mapquest_response_dict).replace("'", "''")}');""")
         self.connection.commit()
         logging.info('Inserted or replaced mapquest response')
         return
@@ -166,7 +171,7 @@ class HotelGeocoder:
             self._iterate_locations()
             self._insert_replace_mapquest_response()
             self._update_hotel_geocoded_flag()
-            time.sleep(1)
+            time.sleep(0.5)
             logging.info('Done hotel, going to the next one')
         return
 
