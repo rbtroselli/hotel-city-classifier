@@ -85,7 +85,8 @@ class ReviewIterator:
         """ Return a driver to use selenium """
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument('--user-data-dir=./browser/user_data')
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled") 
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
         self.driver = webdriver.Chrome(options=chrome_options)
         logging.info('Got driver')
         return
@@ -128,7 +129,7 @@ class ReviewIterator:
     def _load_hotel_page(self):
         """ Get hotel page, and check if valid. Catch exceptions and retry up to 10 times """
         retries = 0
-        while retries < 10:
+        while retries < 3:
             try:
                 self._get_hotel_page()
                 self._check_hotel_page()
