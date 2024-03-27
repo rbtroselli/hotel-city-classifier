@@ -64,7 +64,7 @@ class ReviewIterator:
         return
 
     @staticmethod
-    def _wait_humanly(min_time=5, max_time=10):
+    def _wait_humanly(min_time=10, max_time=15):
         """ Wait a random time between 2 and 4 seconds """
         # min_time = min_time + random.uniform(25, 30)
         # max_time = max_time + random.uniform(35, 40)
@@ -264,9 +264,9 @@ class ReviewIterator:
     
     def _delete_insert_review(self):
         """ Insert review into db """
-        self.cursor.execute(f'delete from REVIEW where id={self.review_id}')
-        self.cursor.execute(f"""
-            insert into REVIEW (
+        delete_query = f'delete from REVIEW where id={self.review_id}'
+        insert_query = (f"""
+            insert or replace into REVIEW (
                 id, url, title, text, rating, month_of_review, year_of_review, month_of_stay, 
                 year_of_stay, likes, pics_flag, language, response_from, response_text, 
                 response_date, response_language, user_id, hotel_id
@@ -292,14 +292,22 @@ class ReviewIterator:
                 {self.hotel_id}
             );
         """)
+        try:
+            self.cursor.execute(delete_query)
+            self.cursor.execute(insert_query)
+        except:
+            logging.error('Error in queries')
+            logging.error(delete_query)
+            logging.error(insert_query)
+            logging.exception('An error occurred')
         # self.connection.commit()
         logging.info('Deleted-inserted review. Did not commit yet')
         return
     
     def _delete_insert_review_user(self):
         """ Insert review into db """
-        self.cursor.execute(f'delete from USER where id={self.review_user_id}')
-        self.cursor.execute(f"""
+        delete_query = f'delete from USER where id={self.review_user_id}'
+        insert_query = (f"""
             insert into USER (
                 id, url, name, name_shown, contributions, helpful_votes, location
             )
@@ -313,6 +321,14 @@ class ReviewIterator:
                 '{self.review_user_location.replace("'","''") if self.review_user_location is not None else 'NA'}'
             );
         """)
+        try:
+            self.cursor.execute(delete_query)
+            self.cursor.execute(insert_query)
+        except:
+            logging.error('Error in queries')
+            logging.error(delete_query)
+            logging.error(insert_query)
+            logging.exception('An error occurred')
         # self.connection.commit()
         logging.info('Deleted-inserted review user. Did not commit yet')
         return
