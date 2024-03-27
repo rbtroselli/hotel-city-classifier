@@ -64,8 +64,10 @@ class ReviewIterator:
         return
 
     @staticmethod
-    def _wait_humanly(min_time=2, max_time=4):
+    def _wait_humanly(min_time=5, max_time=10):
         """ Wait a random time between 2 and 4 seconds """
+        # min_time = min_time + random.uniform(25, 30)
+        # max_time = max_time + random.uniform(35, 40)
         time_to_sleep = random.uniform(min_time, max_time)
         logging.info(f'Waiting {time_to_sleep} seconds')
         time.sleep(time_to_sleep)
@@ -87,7 +89,10 @@ class ReviewIterator:
         chrome_options.add_argument('--user-data-dir=./browser/user_data')
         chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
         chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
+        chrome_options.add_experimental_option("useAutomationExtension", False) 
+        chrome_options.add_argument("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
         self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
         logging.info('Got driver')
         return
     
@@ -334,7 +339,7 @@ class ReviewIterator:
                 wait = WebDriverWait(self.driver, 0.5)
                 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
                 logging.info('Clicked Next Page button')
-                self._wait_humanly(3,3) # wait flat time to avoid missing elements. del-insert of page reviews already takes a variable time of 2-3 seconds
+                self._wait_humanly()
                 WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'azLzJ.MI.Gi.z.Z.BB.kYVoW'))) # wait for comment boxes to load
                 # WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'joSMp.MI._S.b.S6.H5.Cj._a'))) # wait for review urls to load
                 # WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'MjDLG.VKCbE'))) # wait for review user urls to load
