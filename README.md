@@ -42,7 +42,7 @@ The collision probability with the truncated hashed string is not zero, but extr
 Table containing information about scraped hotels. All the info is taken from the hotel's page on the site, with the exception of the ID and the coordinates. The ID is a hash of the URL, as previously mentioned. The coordinates are retrieved from the Nominatim API, using the address of the hotel.
 
 <details>
-  <summary>Table and fields</summary>
+  <summary>Fields details</summary>
 
 | Field | Datatype | Meaning |
 | - | - | - |
@@ -103,7 +103,7 @@ Date of review is scraped as month and year. Precise date of the review is not p
 User ID is also saved, being the hash of the user's profile URL. User info are stored in another table.
 
 <details>
-  <summary>Table and fields</summary>
+  <summary>Fields details</summary>
 
 | Field | Datatype | Meaning |
 | - | - | - |
@@ -138,7 +138,7 @@ The admin area fields are the administrative areas of the location, from the mos
 All the fields are what's returned in the JSON by the API, with the exception of the IDs. Documentation [here](https://developer.mapquest.com/documentation/geocoding-api/address/get/).
 
 <details>
-  <summary>Table and fields</summary>
+  <summary>Fields details</summary>
 
 | Field | Datatype | Meaning |
 | - | - | - |
