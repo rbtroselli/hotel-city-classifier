@@ -1,0 +1,55 @@
+-- drop table if exists HOTEL
+-- ;
+
+create table if not exists HOTEL (
+    ID int primary key,
+    URL varchar,
+    NAME varchar,
+    ADDRESS varchar,
+    LATITUDE float,
+    LONGITUDE float,
+    ALTITUDE float,
+    DESCRIPTION varchar,
+    RATING float,
+    REVIEWS int,
+    CATEGORY_RANK varchar,
+    STAR_RATING float,
+    NEARBY_RESTAURANTS int,
+    NEARBY_ATTRACTIONS int,
+    WALKERS_SCORE int,
+    PICTURES int,
+    AVERAGE_NIGHT_PRICE int,
+    PRICE_RANGE_MIN int,
+    PRICE_RANGE_MAX int,
+    PROPERTY_AMENITIES varchar,
+    ROOM_FEATURES varchar,
+    ROOM_TYPES varchar,
+    LOCATION_RATING float,
+    CLEANLINESS_RATING float,
+    SERVICE_RATING float,
+    VALUE_RATING float,
+    ALSO_KNOWN_AS varchar,
+    FORMERLY_KNOWN_AS varchar,
+    CITY_LOCATION varchar,
+    NUMBER_OF_ROOMS int,
+    REVIEWS_SUMMARY varchar,
+    REVIEWS_KEYPOINT_LOCATION varchar,
+    REVIEWS_KEYPOINT_ATMOSPHERE varchar,
+    REVIEWS_KEYPOINT_ROOMS varchar,
+    REVIEWS_KEYPOINT_VALUE varchar,
+    REVIEWS_KEYPOINT_CLEANLINESS varchar,
+    REVIEWS_KEYPOINT_SERVICE varchar,
+    REVIEWS_KEYPOINT_AMENITIES varchar,
+    REVIEWS_5_EXCELLENT int,
+    REVIEWS_4_VERY_GOOD int,
+    REVIEWS_3_AVERAGE int,
+    REVIEWS_2_POOR int,
+    REVIEWS_1_TERRIBLE int,
+    REVIEWS_KEYWORDS varchar,
+    SCRAPED_TIMESTAMP timestamp default current_timestamp,
+    INSERT_UPDATE_TIMESTAMP timestamp default current_timestamp
+);
+
+-- update RESULT
+-- set HOTEL_SCRAPED_FLAG = 0
+-- ;
