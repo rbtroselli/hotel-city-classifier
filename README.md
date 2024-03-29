@@ -41,6 +41,9 @@ The collision probability with the truncated hashed string is not zero, but extr
 ### HOTEL
 Table containing information about scraped hotels. All the info is taken from the hotel's page on the site, with the exception of the ID and the coordinates. The ID is a hash of the URL, as previously mentioned. The coordinates are retrieved from the Nominatim API, using the address of the hotel.
 
+<details>
+  <summary>Table and fields</summary>
+
 | Field | Datatype | Meaning |
 | - | - | - |
 | ID | int | Primary key, unique identifier of the hotel. Hash of hotel page URL |
@@ -90,6 +93,7 @@ Table containing information about scraped hotels. All the info is taken from th
 | SCRAPED_TIMESTAMP | timestamp | Timestamp of scraping |
 | INSERT_UPDATE_TIMESTAMP | timestamp | Timestamp of insertion or update |
 
+</details>
 
 
 ### Review
@@ -97,6 +101,9 @@ Table containing information about reviews of hotels. The ID is a hash of the UR
 Reviews are scraped from hotel page (each page loads 10 reviews). Reviews in all languages are scraped. Language indication is not present in the webpage itself, so it is detected by the language detection library langdetect. The response from the hotel is not always present, so the fields are often empty. 
 Date of review is scraped as month and year. Precise date of the review is not present in the hotel page, but only in the page of the review itself, that has not been scraped due to the large number of reviews (= page loads needed).
 User ID is also saved, being the hash of the user's profile URL. User info are stored in another table.
+
+<details>
+  <summary>Table and fields</summary>
 
 | Field | Datatype | Meaning |
 | - | - | - |
@@ -121,6 +128,8 @@ User ID is also saved, being the hash of the user's profile URL. User info are s
 | SCRAPED_TIMESTAMP | timestamp | Timestamp of scraping |
 | INSERT_UPDATE_TIMESTAMP | timestamp | Timestamp of insertion or update |
 
+</details>
+
 
 ### HOTEL_MAPQUEST_LOCATION
 Table containing information about the location of the hotel, as retrieved from the MapQuest API. This information is additional, added in a second moment after the scraping of the hotel page, needed because of the unreliability of the Nominatim API (around 20% of missing  coordinates). In case of ambiguous addresses, the MapQuest API returns more than one result, so the table can contain more than one row for the same hotel, ranked in order of probability of the match (RANK=0 being the most probable).
@@ -128,6 +137,8 @@ The ID is a hash of the HOTEL_ID concatenated to the result RANK. The hotel ID i
 The admin area fields are the administrative areas of the location, from the most specific to the most general.
 All the fields are what's returned in the JSON by the API, with the exception of the IDs. Documentation [here](https://developer.mapquest.com/documentation/geocoding-api/address/get/).
 
+<details>
+  <summary>Table and fields</summary>
 
 | Field | Datatype | Meaning |
 | - | - | - |
@@ -159,3 +170,5 @@ All the fields are what's returned in the JSON by the API, with the exception of
 | DISPLAY_LONGITUDE | float | A lng that can be helpful when showing this address as a Point of Interest |
 | MAP_URL | varchar | Map URL |
 | INSERT_UPDATE_TIMESTAMP | timestamp | Timestamp of insertion or update |
+
+</details>
