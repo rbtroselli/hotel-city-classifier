@@ -1,6 +1,6 @@
-# config.py
-
 from pathlib import Path
+from _keys import MAPQUEST_API_KEY
+from _geocoder_exceptions import GEOCODER_EXCEPTION_DICT
 
 current_dir = Path(__file__).resolve().parent
 

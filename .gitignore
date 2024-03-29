@@ -2,6 +2,7 @@
 *browser/
 .DS_store
 keys.py
+_keys.py
 *.db
 
 # Byte-compiled / optimized / DLL files
