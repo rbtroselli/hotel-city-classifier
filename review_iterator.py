@@ -90,7 +90,8 @@ class ReviewIterator:
         chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
         chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
         chrome_options.add_experimental_option("useAutomationExtension", False) 
-        chrome_options.add_argument("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
+        # chrome_options.add_argument('Mozilla/5.0 (iPhone; CPU iPhone OS 12_4_8 like Mac OS X) AppleWebKit/534.2 (KHTML, like Gecko) FxiOS/17.5h1393.0 Mobile/09X753 Safari/534.2')
+        # chrome_options.add_argument('--incognito')
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
         logging.info('Got driver')

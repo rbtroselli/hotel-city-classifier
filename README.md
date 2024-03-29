@@ -1,8 +1,33 @@
-# hotel-city-classifier
+# Hotel City Classifier
+
+## Project Overview
+In the modern era of digital travel planning, platforms like TripAdvisor play a pivotal role in providing travelers with insights and information about accommodations worldwide. This project focuses on leveraging web scraping techniques to extract valuable data from TripAdvisor, specifically targeting hotel information. By gathering data on hotels within a chosen city, this project aims to create a comprehensive database that can be applied to various analyses and studies.
+
+## Project Objectives
+- **Data Collection:** The primary objective of this project is to scrape data from TripAdvisor regarding hotels in a specific city. This includes information such as search results, hotel details, and user reviews.
+- **Data Scraping Methodology:** Utilizing Selenium in Python, the project employs web scraping techniques to simulate human behavior and collect data from TripAdvisor's platform.
+- **Data Enrichment:** In addition to basic hotel information, the project also aims to gather and analyze reviews, ratings, and other relevant attributes associated with each hotel.
+- **Geocoding Integration:** A key component of the project involves geocoding the addresses of hotels using MapQuest's paid API, allowing for spatial analysis and characterization of city areas.
+
+## Scope of Work
+The scope of the project encompasses the following tasks:
+- Developing web scraping scripts to extract data from TripAdvisor's platform.
+- Collecting comprehensive data on hotels within a specified city, including search attributes, hotel details, and user reviews.
+- Implementing techniques to mimic human behavior, such as random wait times, to avoid detection and ensure data integrity.
+- Integrating geocoding functionality to enhance the dataset with geographical coordinates and enable spatial analysis.
+
+## Significance of the Project
+The project holds significance for various stakeholders, including researchers, urban planners, and tourism professionals. By providing access to detailed hotel data and geospatial information, the project enables insights into city areas based on hotel characteristics, amenities, and user reviews. This information can inform decision-making processes related to tourism development, urban planning, and hospitality industry strategies.
 
 
 
-## Tables
+# Code Overview
+
+To do
+
+
+
+# Tables
 Tables and fields definitions
 
 ### Missing values
