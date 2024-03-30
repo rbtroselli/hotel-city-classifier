@@ -16,18 +16,19 @@ class BaseIterator:
             logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # log to console
         else:
             logging.basicConfig(filename=LOG_FOLDER_PATH/log_file_name, filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')  # log to file
-        logging.info('Object instantiated')
+        logging.info('Started initialization')
+        logging.info(f'Test: {test}')
         self.db_name = db_name
         self.connection = None
         self.cursor = None
         self.driver = None
         self._get_cursor() if db_connection else None
         self._get_driver() if browser_driver else None
-        logging.info('Initialization complete')
+        logging.info('Completed initialization')
         return
     
 
-    # connection functions
+    # connection methods
     
     def _get_cursor(self):
         """ Get cursor to db """
@@ -59,7 +60,7 @@ class BaseIterator:
         return 
     
 
-    # utility functions
+    # utility methods
     
     @staticmethod
     def _get_hashed_id(string):
@@ -77,22 +78,22 @@ class BaseIterator:
         return
     
     
-    # page loading functions
+    # page methods
 
     def _load_page(self, url_to_load):
         """ Load the page """
         try:
-            self.driver.get(url)
+            self.driver.get(url_to_load)
             logging.info(f'Loaded page: {url_to_load}')
         except Exception as e:
             logging.error('Error loading page')
             logging.exception('An error occurred')
         return
 
-    def _check_page(self, class_to_check):
+    def _check_page(self, class_to_check): # looks for specific classes to check if the page is loaded
         """ Check if the page is loaded, based on the presence of a class """
         try:
-            WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
+            WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, class_to_check)))
             logging.info('Page loaded')
         except Exception as e:
             logging.error('Error loading page')
@@ -100,7 +101,7 @@ class BaseIterator:
         return
     
 
-    # db interaction functions
+    # db interaction methods
     
     def _get_row_from_db(self, table, column_list, condition='1=1'):
         """ Get a row from the db """
@@ -115,21 +116,22 @@ class BaseIterator:
             logging.exception('An error occurred')
             return
         
-    def _insert_or_replace_row(self, table, column_list, value_list):
+    def _insert_or_replace_row(self, table, column_list, value_list, commit=True):
         """ Insert or replace a row in the db """
-        if len(column_list) != len(value_list):
-            logging.error('Column list and value list have different lengths')
-            return
         try:
+            if len(column_list) != len(value_list):
+                raise ValueError('Column list and value list have different lengths')
             columns = ', '.join(column_list)
             values = ', '.join(value_list)
-            self.cursor.execute(f'replace into {table} ({columns}) values ({values});')
-            self.connection.commit()
+            query = f'insert or replace into {table} ({columns}) values ({values});'
+            self.cursor.execute(query)
+            if commit:
+                self.connection.commit()
             logging.info(f'Inserted or replaced row in db')
         except Exception as e:
             logging.error('Error inserting or replacing row in db')
-            logging.debug(f'Columns: {column_list}')
-            logging.debug(f'Values: {value_list}')
+            logging.error(f'Columns: {column_list}')
+            logging.error(f'Values: {value_list}')
             logging.exception('An error occurred')
         return
     
@@ -151,6 +153,6 @@ class BaseIterator:
         return
     
     def _subclass_run(self):
-        """ Placeholder method for subclasses to implement """
+        """ Placeholder method for subclasses to implement its specific tasks """
         raise NotImplementedError('Subclasses must implement _subclass_run method')
         return
