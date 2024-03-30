@@ -80,6 +80,13 @@ class BaseIterator:
         time.sleep(time_to_sleep)
         return
     
+    @staticmethod
+    def _reset_dict(dict_to_reset):
+        """ Reset all values in a dictionary to None """
+        for key in dict_to_reset.keys():
+            dict_to_reset[key] = None
+        logging.info('Reset dictionary')
+        return 
     
     # page methods
 
@@ -97,7 +104,7 @@ class BaseIterator:
         """ Check if the page is loaded, based on the presence of a class """
         try:
             WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, class_to_check)))
-            logging.info('Page loaded')
+            logging.info('Checked page')
         except Exception as e:
             logging.error('Error loading page')
             logging.exception('An error occurred')
@@ -112,9 +119,11 @@ class BaseIterator:
         """ Get a row from the db """
         try:
             columns = ', '.join(column_list)
-            self.cursor.execute(f'select {columns} from {table} where {condition};')
+            self.cursor.execute(f'select {columns} from {table} where {condition} order by random() limit 1;')
             row = self.cursor.fetchone()
-            logging.info(f'Got row from db')
+            if row is None: # if row is None, assign a tuple of None values, long as the number of columns passed in column_list
+                row = tuple([None for i in range(len(column_list))])
+            logging.info(f'Got row from db: {row}')
             return row
         except Exception as e:
             logging.error('Error getting row from db')
@@ -135,6 +144,17 @@ class BaseIterator:
             logging.error('Error inserting or replacing row in db')
             logging.error(f'Columns and values: {column_value_dict}')
             logging.error(f'Query: {query}')
+            logging.exception('An error occurred')
+        return
+    
+    def _update_flag(self, table, column, value, condition='1=0'): # default condition to avoid updating all rows
+        """ Update a flag in the db """
+        try:
+            self.cursor.execute(f'update {table} set {column}={value} where {condition};')
+            self.connection.commit()
+            logging.info(f'Updated flag in db')
+        except Exception as e:
+            logging.error('Error updating flag in db')
             logging.exception('An error occurred')
         return
     
