@@ -15,15 +15,17 @@ class ResultIterator(BaseIterator):
         self.continue_flag = False
         self.continue_flag_retries = 0
         self.page_number = -1
-        # attributes (manage with a dictionary?)
         self.result_element = None
-        self.result_url = None
-        self.result_rating = None
-        self.result_reviews = None
         self.result_sponsored_flag = False
-        self.result_rank = None
-        self.result_id = None
-        self.result_element = None
+        # attributes to go in the db
+        self.result_dict = {
+            'id': None,
+            'rating': None,
+            'reviews': None,
+            'url': None,
+            'page': None,
+            'rank': None
+        }
         logging.info('Completed subclass initialization')
         logging.info(self.url_template)
         return
@@ -72,24 +74,21 @@ class ResultIterator(BaseIterator):
 
     def _scrape_result(self):
         """ Scrape result element """
-        self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href').split('?')[0]
-        self.result_reviews = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
-        self.result_rating = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0] if self.result_reviews != '0' else -1
         self.result_sponsored_flag = self.result_element.find_elements('class name', 'ngpKT.WywIO') != []
-        self.result_rank = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored_flag == False else -1
-        self.result_id = self._get_hashed_id(self.result_url)
-        logging.info(f'Scraped result')
-        logging.info(f'Id: {self.result_id}')
-        logging.info(f'URL: {self.result_url}')
-        logging.info(f'Rating: {self.result_rating}')
-        logging.info(f'Reviews: {self.result_reviews}')
-        logging.info(f'Sponsored: {self.result_sponsored_flag}')
-        logging.info(f'Position: {self.result_rank}')
+        self.result_dict['url'] = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href').split('?')[0]
+        self.result_dict['id'] = self._get_hashed_id(self.result_dict['url'])
+        self.result_dict['reviews'] = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[-2].replace(',', '')
+        self.result_dict['rating'] = self.result_element.find_element('class name', 'luFhX.o.W.f.u.w.JSdbl').get_attribute('aria-label').split(' ')[0] if self.result_dict['reviews'] != '0' else -1
+        self.result_dict['rank'] = self.result_element.find_element('class name', 'nBrpc.Wd.o.W').text.split(' ')[0].replace('.', '') if self.result_sponsored_flag == False else -1
+        self.result_dict['page'] = self.page_number
+        logging.info('Scraped result')
+        for key, value in self.result_dict.items():
+            logging.info(f'{key}: {value}')
         return
 
     def _check_if_new_result(self):
         """ Check if result is already in db, change new_result_flag if so """
-        if self.cursor.execute(f'select count(*)>0 from RESULT where id={self.result_id}').fetchone()[0]: # id already in db
+        if self.cursor.execute(f'select count(*)>0 from RESULT where id={self.result_dict["id"]}').fetchone()[0]: # id already in db
             self.new_result_flag = False
             logging.info('Set new_result_flag to False')
         else:
@@ -115,11 +114,7 @@ class ResultIterator(BaseIterator):
             if self.result_sponsored_flag == True:
                 logging.info('Sponsored result, skipping')
                 continue
-            self._insert_replace_row(
-                table='RESULT', 
-                column_list=['id', 'rating', 'reviews', 'url', 'page', 'rank'], 
-                value_list=[self.result_id, self.result_rating, self.result_reviews, self.result_url, self.page_number, self.result_rank]
-            ) # a dict can be used instead of lists. self.result_dict. Keys are column names, values are values
+            self._insert_replace_row(table='RESULT', column_value_dict=self.result_dict)
             self._update_continue_flag()
         logging.info('Iterated all results')
         return

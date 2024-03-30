@@ -121,13 +121,11 @@ class BaseIterator:
             logging.exception('An error occurred')
             return
         
-    def _insert_replace_row(self, table, column_list, value_list, commit=True):
+    def _insert_replace_row(self, table, column_value_dict, commit=True):
         """ Insert or replace a row in the db """
         try:
-            if len(column_list) != len(value_list):
-                raise ValueError('Column list and value list have different lengths')
-            columns = ', '.join(column_list)
-            values = ', '.join(['"'+str(value).replace('"','""')+'"' for value in value_list])
+            columns = ', '.join(column_value_dict.keys())
+            values = ', '.join(['"'+str(value).replace('"','""')+'"' for value in column_value_dict.values()])
             query = f'insert or replace into {table} ({columns}) values ({values});'
             self.cursor.execute(query)
             if commit:
@@ -135,8 +133,7 @@ class BaseIterator:
             logging.info(f'Inserted or replaced row in db')
         except Exception as e:
             logging.error('Error inserting or replacing row in db')
-            logging.error(f'Columns: {column_list}')
-            logging.error(f'Values: {value_list}')
+            logging.error(f'Columns and values: {column_value_dict}')
             logging.error(f'Query: {query}')
             logging.exception('An error occurred')
         return
