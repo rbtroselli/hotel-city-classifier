@@ -1,85 +1,45 @@
-import logging
-import time
-import random
-import sqlite3
-import hashlib
+import logging # settings inherited from base_iterator
+from base_iterator import BaseIterator
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
-from selenium import webdriver
-
-url_template = 'https://www.tripadvisor.com/Hotels-g187791-oa{}-Rome_Lazio-Hotels.html'
-logging.basicConfig(filename='logs/result_iterator.log', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
 
-class SearchIterator:
-    def __init__(self):
-        logging.info('Object instantiated')
-        self.driver = None
-        self.connection = None
-        self.cursor = None
-        self.page_number = -1
-        self.url = url_template.format(self.page_number)
+
+class ResultIterator(BaseIterator):
+    """ Iterator to scrape search results """
+    url_template = 'https://www.tripadvisor.com/Hotels-g187791-oa{}-Rome_Lazio-Hotels.html'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs) # pass all arguments to parent class
         self.continue_flag = False
-        self.new_result_flag = True
+        self.continue_flag_retries = 0
+        self.page_number = -1
+        # attributes (manage with a dictionary?)
         self.result_element = None
-        self.result_id = None
         self.result_url = None
         self.result_rating = None
         self.result_reviews = None
         self.result_sponsored_flag = False
-        self.continue_flag_retries = 0
+        self.result_rank = None
+        self.result_id = None
+        self.result_element = None
+        logging.info('Completed subclass initialization')
+        logging.info(self.url_template)
         return
-    
-    @staticmethod
-    def _get_hashed_id(string):
-        # Calculate the SHA-256 hash of the string
-        hash_value = hashlib.sha256(string.encode()).hexdigest()
-        # Convert the hexadecimal hash value to an integer
-        hash_int = int(hash_value, 16)
-        # Truncate the integer to 20 digits. It has sufficient collision resistance for this use case
-        truncated_hash = hash_int % (10 ** 18)
-        return truncated_hash
-    
-    def _get_driver(self):
-        """ Return a driver to use selenium """
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument('--user-data-dir=./browser/user_data')
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled") 
-        self.driver = webdriver.Chrome(options=chrome_options)
-        logging.info('Got driver')
-        return
-    
-    def _get_cursor(self):
-        """ Get cursor to db """
-        self.connection = sqlite3.connect('hotel.db')
-        self.cursor = self.connection.cursor()
-        logging.info('Got cursor')
-        return
-    
-
     
     def _increase_page(self):
         """ Increase page number """
         self.page_number += 1
-        self.url = url_template.format(self.page_number*30)
+        self.url = ResultIterator.url_template.format(self.page_number*30)
         logging.info(f'Page increased: {self.page_number}, url: {self.url}')
-        time.sleep(0.5)
         return
     
     def _decrease_page(self):
         """ Decrease page number """
         self.page_number -= 1
-        self.url = url_template.format(self.page_number*30)
+        self.url = ResultIterator.url_template.format(self.page_number*30)
         logging.info(f'Page decreased: {self.page_number}, url: {self.url}')
-        time.sleep(0.5)
-        return
-    
-    def _get_page(self):
-        """ Get search page """
-        self.driver.get(self.url)
-        logging.info('Got page')
-        time.sleep(random.uniform(20, 40))
         return
     
     def _click_seeall_button(self):
@@ -87,41 +47,29 @@ class SearchIterator:
         wait = WebDriverWait(self.driver, 50)
         wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'See all')]"))).click()
         logging.info('Clicked See all button')
-        time.sleep(random.uniform(20, 40))
         return
-    
-    def _check_continue(self):
+
+    def _continue_not_stop(self):
         """ 
-        Set continue_flag to True if there are new results. 
-        At least one new result in the page = continue page iteration. No new results in page = stop page iteration 
+        Decide if continue to the next page or stop scraping. 
+        If continue_flag is False, retry loading page. If retries >= 5, stop scraping
+        If continue_flag is True, reset retries and continue to next page
         """
-        if self.new_result_flag == True:
-            if self.continue_flag == False:
-                self.continue_flag = True
-                logging.info('Set continue_flag to True')
-        return
-    
-    def _insert_result(self):
-        """ Insert result in db, only if continue_flag is True """
-        if self.new_result_flag == True:
-            self.cursor.execute(f"""
-                insert or replace into RESULT (id, rating, reviews, url, page, rank) 
-                values ({self.result_id}, {self.result_rating}, {self.result_reviews}, '{self.result_url}', {self.page_number}, {self.result_rank})
-            """)
-            self.connection.commit()
-            logging.info('Inserted result')
-        return
-    
-    def _check_result(self):
-        """ Check if result is already in db, change new_result_flag if so """
-        if self.cursor.execute(f'select count(*)>0 from RESULT where id={self.result_id}').fetchone()[0]: # id already in db
-            self.new_result_flag = False
-            logging.info('Set new_result_flag to False')
-        else:
-            self.new_result_flag = True
-            logging.info('Set new_result_flag to True')
-        return
-    
+        if (self.continue_flag == False) and (self.continue_flag_retries < 5):
+            self.continue_flag_retries += 1
+            self._decrease_page()
+            logging.info(f'continue_flag is False, retrying loading page, retry {self.continue_flag_retries}')
+            return True
+        elif (self.continue_flag == False) and (self.continue_flag_retries >= 5):
+            logging.info('continue_flag is False, breaking scraping loop')
+            return False
+        else: # self.continue_flag == True
+            self.continue_flag_retries = 0 # reset retries
+            self.continue_flag = False # reset flag, to be set to True if there are new results
+            logging.info('Done page, continuing to next page')
+            logging.info('-'*50)
+            return True
+
     def _scrape_result(self):
         """ Scrape result element """
         self.result_url = self.result_element.find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ.FGwzt.ukgoS').get_attribute('href').split('?')[0]
@@ -139,88 +87,75 @@ class SearchIterator:
         logging.info(f'Position: {self.result_rank}')
         return
 
-    def _iterate_result(self):
-        """ Cycle through results in search page """
-        for element in self.driver.find_elements('class name', 'listItem'):
-            self.result_element = element
+    def _check_if_new_result(self):
+        """ Check if result is already in db, change new_result_flag if so """
+        if self.cursor.execute(f'select count(*)>0 from RESULT where id={self.result_id}').fetchone()[0]: # id already in db
+            self.new_result_flag = False
+            logging.info('Set new_result_flag to False')
+        else:
+            self.new_result_flag = True
+            logging.info('Set new_result_flag to True')
+        return
+    
+    def _update_continue_flag(self):
+        """ 
+        Set continue_flag to True if there are new results. 
+        At least one new result in the page: continue page iteration. No new results in page: stop page iteration 
+        """
+        if (self.new_result_flag == True and self.continue_flag == False):
+            self.continue_flag = True
+            logging.info('Set continue_flag to True')
+        return
+    
+    def _sub_iterate_result(self):
+        """ Iterate over search results in the page """
+        for self.result_element in self.driver.find_elements('class name', 'listItem'):
             self._scrape_result()
-            self._check_result()
+            self._check_if_new_result()
             if self.result_sponsored_flag == True:
                 logging.info('Sponsored result, skipping')
                 continue
-            self._insert_result()
-            self._check_continue()
+            self._insert_replace_row(
+                table='RESULT', 
+                column_list=['id', 'rating', 'reviews', 'url', 'page', 'rank'], 
+                value_list=[self.result_id, self.result_rating, self.result_reviews, self.result_url, self.page_number, self.result_rank]
+            ) # a dict can be used instead of lists. self.result_dict. Keys are column names, values are values
+            self._update_continue_flag()
         logging.info('Iterated all results')
         return
     
-    def _reset_continue_flag(self):
-        """ Reset continue_flag to False, before advancing to next page """
-        self.continue_flag = False
-        logging.info('Reset continue_flag to False')
-        return
-    
-    def _reset_continue_flag_retries(self):
-        """ Reset continue_flag_retries to 0, before advancing to next page """
-        self.continue_flag_retries = 0
-        logging.info('Reset continue_flag_retries to 0')
-        return
-    
-    def _load_page(self):
+
+    # page setup (get page, click button)
+
+    def _setup_page(self):
         """ Get page and click on 'See all' button. Retries implemented """
         retries = 0
-        while retries < 15:
+        while retries < 5:
             try:
                 self._get_page()
+                self._wait_humanly()
                 self._click_seeall_button()
+                self._wait_humanly()
+                # self._check_page()
                 logging.info('Loaded page')
                 break
             except Exception as e:
                 retries += 1
-                logging.error(e)
                 logging.error(f'Page not loaded: error getting page or clicking button, retry {retries}')
-                time.sleep(15)
-                continue
+                logging.exception('An error occurred')
+                self._wait_humanly()
+                continue        
         return
     
-    def _branch_continue(self):
-        """ Branching logic for continue_flag """
-        if (self.continue_flag == False) and (self.continue_flag_retries < 10):
-            self.continue_flag_retries += 1
-            self._decrease_page()
-            logging.info(f'continue_flag is False, retrying loading page, retry {self.continue_flag_retries}')
-            return True
-        if (self.continue_flag == False) and (self.continue_flag_retries >= 10):
-            logging.info('continue_flag is False, breaking scraping loop')
-            return False
-        else: # continue_flag is True
-            self._reset_continue_flag_retries()
-            self._reset_continue_flag()
-            logging.info('Done page, continuing to next page')
-            logging.info('-'*50)
-            return True
 
-    def _iterate_results_pages(self):
-        """ Cycle through search pages. Break if continue_flag is False, after 10 retries """
+    # run method (pages iteration)
+
+    def _subclass_run(self):
+        """ Iterate over search results pages"""
         while True:
             self._increase_page()
-            self._load_page()
-            self._iterate_result()
-            if self._branch_continue() is False: 
+            self._setup_page()
+            self._sub_iterate_result()
+            if self._continue_not_stop() is False: 
                 break
         return
-    
-    def run(self):
-        """ Run the search iterator """
-        try:
-            self._get_driver()
-            self._get_cursor()
-            self._iterate_results_pages()
-        finally:
-            time.sleep(600)
-            self.driver.quit()
-            self.connection.close()
-        return
-
-if __name__ == '__main__':
-    si = SearchIterator()
-    si.run()
