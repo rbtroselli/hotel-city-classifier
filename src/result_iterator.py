@@ -17,7 +17,7 @@ class ResultIterator(BaseIterator):
         self.page_number = -1
         self.result_element = None
         self.result_sponsored_flag = False
-        # attributes to go in the db
+        # attributes that go in the db
         self.result_dict = {
             'id': None,
             'rating': None,
@@ -27,7 +27,6 @@ class ResultIterator(BaseIterator):
             'rank': None
         }
         logging.info('Completed subclass initialization')
-        logging.info(self.url_template)
         return
     
     def _increase_page(self):
@@ -132,11 +131,11 @@ class ResultIterator(BaseIterator):
                 self._click_seeall_button()
                 self._wait_humanly()
                 # self._check_page()
-                logging.info('Loaded page')
+                logging.info('Setup page')
                 break
             except Exception as e:
                 retries += 1
-                logging.error(f'Page not loaded: error getting page or clicking button, retry {retries}')
+                logging.error(f'Page not setup: error getting page or clicking button, retry {retries}')
                 logging.exception('An error occurred')
                 self._wait_humanly()
                 continue        
@@ -146,7 +145,7 @@ class ResultIterator(BaseIterator):
     # run method (pages iteration)
 
     def _subclass_run(self):
-        """ Iterate over search results pages"""
+        """ Iterate over search results pages """
         while True:
             self._increase_page()
             self._setup_page()
