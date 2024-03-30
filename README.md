@@ -23,7 +23,26 @@ The project holds significance for various stakeholders, including researchers, 
 
 # Code Overview
 
-To do
+## BaseIterator Class
+
+The `BaseIterator` class serves as the foundation for all iterator implementations in our project. It provides common methods and attributes that are shared among all iterator subclasses. Each subclass of `BaseIterator` specializes in performing specific tasks or iterating over specific data sources.
+
+## Common Methods and Attributes
+
+- **run():** Executes the iterator, performing the main iteration logic. Establishes connections and launch _subclass_run.
+- **_subclass_run():** A placeholder method intended for subclasses to implement their specialized iteration logic. Subclasses must override this method to provide their specific implementation.
+- **connection:** A database connection object used for database interactions. Initialized as `None` by default and should be established by subclasses if database access is required.
+- **cursor:** A database cursor object used for executing SQL queries. Initialized as `None` by default and should be established by subclasses if database access is required.
+- **driver:** A browser driver object used for web scraping tasks. Initialized as `None` by default and should be established by subclasses if web scraping is required.
+
+TO BE FINISHED
+
+## Subclasses
+
+- **ResultIterator:** Subclass of `BaseIterator` specializing in iterating over and scraping results of a research on the site.
+- **HotelIterator:** Subclass of `BaseIterator` specializing in iterating over and scraping hotels found by the previous iterator.
+- **ReviewIterator:** Subclass of `BaseIterator` specializing in iterating over and scraping reviews of the hotels found by the previous iterator.
+
 
 
 
