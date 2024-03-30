@@ -8,9 +8,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
 from selenium import webdriver
 from _config import LOG_FOLDER_PATH
+from _config import DB_FOLDER_PATH
 
 
 class BaseIterator:
+    """ Base class for all iterators """
     def __init__(self, test=True, log_file_name='test.log', db_name='test.db', db_connection=True, browser_driver=True):
         if test:
             logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # log to console
@@ -22,6 +24,7 @@ class BaseIterator:
         self.connection = None
         self.cursor = None
         self.driver = None
+        self.url = None
         self._get_cursor() if db_connection else None
         self._get_driver() if browser_driver else None
         logging.info('Completed initialization')
@@ -33,7 +36,7 @@ class BaseIterator:
     def _get_cursor(self):
         """ Get cursor to db """
         try:
-            self.connection = sqlite3.connect(self.db_name)
+            self.connection = sqlite3.connect(DB_FOLDER_PATH/self.db_name)
             self.cursor = self.connection.cursor()
             logging.info('Got cursor')
         except Exception as e:
@@ -45,7 +48,7 @@ class BaseIterator:
         """ Return a driver to use selenium """
         try:
             chrome_options = webdriver.ChromeOptions()
-            chrome_options.add_argument('--user-data-dir=./browser/user_data')
+            # chrome_options.add_argument('--user-data-dir=./browser/user_data')
             chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
             chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
             chrome_options.add_experimental_option("useAutomationExtension", False) 
@@ -80,11 +83,11 @@ class BaseIterator:
     
     # page methods
 
-    def _load_page(self, url_to_load):
+    def _get_page(self):
         """ Load the page """
         try:
-            self.driver.get(url_to_load)
-            logging.info(f'Loaded page: {url_to_load}')
+            self.driver.get(self.url)
+            logging.info(f'Loaded page: {self.url}')
         except Exception as e:
             logging.error('Error loading page')
             logging.exception('An error occurred')
@@ -99,6 +102,8 @@ class BaseIterator:
             logging.error('Error loading page')
             logging.exception('An error occurred')
         return
+    
+    # to do: def _click_button(self, xpath):
     
 
     # db interaction methods
@@ -116,13 +121,13 @@ class BaseIterator:
             logging.exception('An error occurred')
             return
         
-    def _insert_or_replace_row(self, table, column_list, value_list, commit=True):
+    def _insert_replace_row(self, table, column_list, value_list, commit=True):
         """ Insert or replace a row in the db """
         try:
             if len(column_list) != len(value_list):
                 raise ValueError('Column list and value list have different lengths')
             columns = ', '.join(column_list)
-            values = ', '.join(value_list)
+            values = ', '.join(['"'+str(value).replace('"','""')+'"' for value in value_list])
             query = f'insert or replace into {table} ({columns}) values ({values});'
             self.cursor.execute(query)
             if commit:
@@ -132,6 +137,7 @@ class BaseIterator:
             logging.error('Error inserting or replacing row in db')
             logging.error(f'Columns: {column_list}')
             logging.error(f'Values: {value_list}')
+            logging.error(f'Query: {query}')
             logging.exception('An error occurred')
         return
     
@@ -153,6 +159,9 @@ class BaseIterator:
         return
     
     def _subclass_run(self):
-        """ Placeholder method for subclasses to implement its specific tasks """
+        """ 
+        Placeholder method for subclasses to implement its specific tasks.
+        Each subclass implements the method to iterate through specific pages and scrape data
+        """
         raise NotImplementedError('Subclasses must implement _subclass_run method')
         return
