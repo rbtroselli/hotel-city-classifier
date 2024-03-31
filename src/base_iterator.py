@@ -94,9 +94,9 @@ class BaseIterator:
         """ Load the page """
         try:
             self.driver.get(self.url)
-            logging.info(f'Loaded page: {self.url}')
+            logging.info(f'Got page: {self.url}')
         except Exception as e:
-            logging.error('Error loading page')
+            logging.error('Error getting page')
             logging.exception('An error occurred')
         return
 
