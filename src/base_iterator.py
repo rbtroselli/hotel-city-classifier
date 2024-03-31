@@ -134,6 +134,19 @@ class BaseIterator:
         """ Insert or replace a row in the db """
         try:
             columns = ', '.join(column_value_dict.keys())
+            # replace None values with -1 for integer columns and 'NULL' for text columns
+            for key, value in column_value_dict.items():
+                if value is None:
+                    if self.cursor.execute(f'pragma table_info({table})').fetchall()[list(column_value_dict.keys()).index(key)][2] == 'INTEGER':
+                        column_value_dict[key] = -1
+                    else:
+                        column_value_dict[key] = 'NA'
+            # replace True and False values with 1 and 0
+            for key, value in column_value_dict.items():
+                if value == True:
+                    column_value_dict[key] = 1
+                elif value == False:
+                    column_value_dict[key] = 0
             values = ', '.join(['"'+str(value).replace('"','""')+'"' for value in column_value_dict.values()])
             query = f'insert or replace into {table} ({columns}) values ({values});'
             self.cursor.execute(query)
