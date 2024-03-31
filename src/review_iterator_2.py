@@ -24,6 +24,7 @@ class ReviewIterator(BaseIterator):
         self.hotel_page_reviews_number = None
         self.hotel_scraped_reviews_number = None
         self.comment_box = None
+        self.skip_review_flag = False
         # attributes that go in the db
         self.review_dict = {
             'id': None,
@@ -95,7 +96,7 @@ class ReviewIterator(BaseIterator):
                 break
             except TimeoutException:
                 retries += 1
-                logging.info(f'Next page button not found, retry: {i}')
+                logging.info(f'Next page button not found, retry: {retries}')
                 self.continue_hotel_flag = False # set flag to False when button is not found
                 continue
             except Exception as e:
@@ -129,6 +130,8 @@ class ReviewIterator(BaseIterator):
                 review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text
                 self.review_dict['month_of_review'] = ReviewIterator.months_short_dict[self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.split(' ')[-2].lower()]
                 self.review_dict['year_of_review'] = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.split(' ')[-1]
+                if int(self.review_dict['year_of_review']) < 2000: # if year is less than 2000, the scraper got the day of the month. It happens when the review is from the current month, so set the year to current year
+                    self.review_dict['year_of_review'] = time.strftime('%Y')
             review_date_of_stay = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else 'NA'
             self.review_dict['month_of_stay'] = ReviewIterator.months_long_dict[self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-2].lower()] if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else -1
             self.review_dict['year_of_stay'] = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-1] if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else -1
@@ -154,13 +157,17 @@ class ReviewIterator(BaseIterator):
                     self.user_dict['location'] = review_user_info.text
             self.review_dict['user_id'] = self.user_dict['id']
             self.review_dict['hotel_id'] = self.hotel_id
-            logging.info('Scraped review')
-            for key, value in self.review_dict.items():
-                logging.info(f'{key}: {value}')
-            logging.info('Scraped user')
-            for key, value in self.user_dict.items():
-                logging.info(f'{key}: {value}')
+            # log
+            logging.info('Scraped review and user')
+            for dictionary in [self.review_dict, self.user_dict]:
+                for key, value in dictionary.items():
+                    if 'text' in str(key) and value is not None:
+                        value_str = str(value)[:50] + ' [...] ' + str(value)[-50:] # Truncate string in log
+                    else:
+                        value_str = value
+                    logging.info(f'{key}: {value_str}')
         except Exception as e:
+            self.skip_review_flag = True # Do not insert if there is an error
             logging.error('Error scraping review')
             logging.exception('An error occurred')
         return
@@ -169,11 +176,14 @@ class ReviewIterator(BaseIterator):
         """ Scrape the review page """
         comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
         for self.comment_box in comment_boxes:
-            self._scrape_single_review()
-            self._insert_replace_row(table='REVIEW', column_value_dict=self.review_dict, commit=False)
-            self._insert_replace_row(table='USER', column_value_dict=self.user_dict, commit=False)
             self._reset_dict(self.review_dict)
             self._reset_dict(self.user_dict)
+            self.skip_review_flag = False # reset
+            self._scrape_single_review()
+            if self.skip_review_flag == True: # do not insert
+                continue
+            self._insert_replace_row(table='REVIEW', column_value_dict=self.review_dict, commit=False)
+            self._insert_replace_row(table='USER', column_value_dict=self.user_dict, commit=False)
             logging.info('-'*50)
         self.connection.commit() # commit the whole page at the end
         logging.info('Scraped review page. Committed reviews and users insert or replace to db')
@@ -241,7 +251,7 @@ class ReviewIterator(BaseIterator):
         """ Iterate over hotel pages """
         while True:
             self.continue_hotel_flag = True # reset flag
-            self.hotel_id, self.hotel_url = self._get_row_from_db(table='RESULT', column_list=['id', 'url'], condition='hotel_scraped_flag=1 and reviews_scraped_flag=0 and 1=0')
+            self.hotel_id, self.hotel_url = self._get_row_from_db(table='RESULT', column_list=['id', 'url'], condition='hotel_scraped_flag=1 and reviews_scraped_flag=0')
             if (self.hotel_id == None and self.hotel_url == None): # no more hotels to scrape reviews of
                 break
             self._setup_page()
