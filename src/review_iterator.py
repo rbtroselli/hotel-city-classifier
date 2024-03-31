@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from langdetect import detect
+from selenium_driverless.types.webelement import NoSuchElementException
 
 
 
@@ -87,14 +88,14 @@ class ReviewIterator(BaseIterator):
         retries = 0
         while retries < 3:
             try:
-                wait = WebDriverWait(self.driver, 0.5)
-                wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Next page']"))).click()
+                next_page_button = self._wait_and_return_element(by='xpath', value="//a[@aria-label='Next page']", timeout=1)
+                next_page_button.click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
-                self._check_page(class_to_check='azLzJ.MI.Gi.z.Z.BB.kYVoW') # wait for comment boxes to load
+                self._wait_and_return_element(by='class name', value='azLzJ.MI.Gi.z.Z.BB.kYVoW') # wait for comment boxes to load
                 self.continue_hotel_flag = True # reset flag to True when button is pressed
                 break
-            except TimeoutException:
+            except NoSuchElementException:
                 retries += 1
                 logging.info(f'Next page button not found, retry: {retries}')
                 self.continue_hotel_flag = False # set flag to False when button is not found
@@ -210,7 +211,7 @@ class ReviewIterator(BaseIterator):
         while retries < 5:
             try:
                 self._get_page()
-                self._check_page(class_to_check='WMndO.f') # check presence of element
+                self._wait_and_return_element(by='class name', value='WMndO.f') # check presence of element
                 self._wait_humanly()
                 logging.info('Setup page')
                 break
@@ -224,12 +225,12 @@ class ReviewIterator(BaseIterator):
     
     def _push_all_languages_button(self):
         """ Click on 'All languages' button. Retries implemented """
-        all_languages_button = self.driver.find_element('xpath', "//span[contains(text(),'All languages')]")
+        # all_languages_button = self.driver.find_element('xpath', "//span[contains(text(),'All languages')]")
         retries = 0
         while retries < 5:
             try:
-                wait = WebDriverWait(self.driver, 5)
-                wait.until(EC.element_to_be_clickable(all_languages_button)).click()
+                all_languages_button = self._wait_and_return_element(by='xpath', value="//span[contains(text(),'All languages')]", timeout=3)
+                all_languages_button.click()
                 logging.info('Clicked All languages button')
                 self._wait_humanly()
                 break

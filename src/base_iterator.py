@@ -7,6 +7,8 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
+# from selenium.common.exceptions import NoSuchElementException
+from selenium_driverless.types.webelement import NoSuchElementException
 from _config import LOG_FOLDER_PATH
 from _config import DB_FOLDER_PATH
 
@@ -47,15 +49,19 @@ class BaseIterator:
     def _get_driver(self):
         """ Return a driver to use selenium """
         try:
-            chrome_options = webdriver.ChromeOptions()
-            # chrome_options.add_argument('--user-data-dir=./browser/user_data')
-            chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
-            chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
-            chrome_options.add_experimental_option('useAutomationExtension', False) 
-            # chrome_options.add_argument('Mozilla/5.0 (iPhone; CPU iPhone OS 12_4_8 like Mac OS X) AppleWebKit/534.2 (KHTML, like Gecko) FxiOS/17.5h1393.0 Mobile/09X753 Safari/534.2')
-            # chrome_options.add_argument('--incognito')
-            self.driver = webdriver.Chrome(options=chrome_options)
-            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
+            # chrome_options = webdriver.ChromeOptions()
+            # # chrome_options.add_argument('--user-data-dir=./browser/user_data')
+            # chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
+            # chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
+            # chrome_options.add_experimental_option('useAutomationExtension', False) 
+            # # chrome_options.add_argument('Mozilla/5.0 (iPhone; CPU iPhone OS 12_4_8 like Mac OS X) AppleWebKit/534.2 (KHTML, like Gecko) FxiOS/17.5h1393.0 Mobile/09X753 Safari/534.2')
+            # # chrome_options.add_argument('--incognito')
+            # self.driver = webdriver.Chrome(options=chrome_options)
+            # self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
+
+            from selenium_driverless.sync import webdriver
+            self.driver = webdriver.Chrome()
+
             logging.info('Got driver')
         except Exception as e:
             logging.error('Error getting driver')
@@ -95,6 +101,7 @@ class BaseIterator:
         try:
             self.driver.get(self.url)
             logging.info(f'Got page: {self.url}')
+            time.sleep(10) # testtt
         except Exception as e:
             logging.error('Error getting page')
             logging.exception('An error occurred')
@@ -109,6 +116,30 @@ class BaseIterator:
             logging.error('Error loading page')
             logging.exception('An error occurred')
         return
+    
+    def _wait_and_return_element(self, by, value, timeout=30):
+        """ Wait for an element to be present """
+        if by == 'class name': # this library wants spaces instead of dots for class names
+            value = value.replace('.', ' ')
+        print(by, value)
+        for passed_time in range(timeout):
+            try:
+                element = self.driver.find_element(by, value)
+                # element = self.driver.find_element('xpath', '//*[@class="WMndO f"]')
+                logging.info(f'Waited for element: {by} {value} for {passed_time} seconds')
+                return element
+            except NoSuchElementException as e:
+                logging.info(f'Element not found: {by} {value}. Waited {passed_time} seconds')
+                time.sleep(1)
+                passed_time += 1
+                continue
+            except Exception as e:
+                logging.error('Error waiting for element')
+                logging.exception('An error occurred')
+                return None
+        logging.error('Error waiting for element')
+        return None
+    
     
     # to do: def _click_button(self, xpath):
     
