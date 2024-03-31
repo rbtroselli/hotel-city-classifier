@@ -3,10 +3,10 @@ import time
 import random
 import sqlite3
 import hashlib
+from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
-from selenium import webdriver
 from _config import LOG_FOLDER_PATH
 from _config import DB_FOLDER_PATH
 
@@ -51,7 +51,7 @@ class BaseIterator:
             # chrome_options.add_argument('--user-data-dir=./browser/user_data')
             chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
             chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
-            chrome_options.add_experimental_option("useAutomationExtension", False) 
+            chrome_options.add_experimental_option('useAutomationExtension', False) 
             # chrome_options.add_argument('Mozilla/5.0 (iPhone; CPU iPhone OS 12_4_8 like Mac OS X) AppleWebKit/534.2 (KHTML, like Gecko) FxiOS/17.5h1393.0 Mobile/09X753 Safari/534.2')
             # chrome_options.add_argument('--incognito')
             self.driver = webdriver.Chrome(options=chrome_options)
@@ -73,7 +73,7 @@ class BaseIterator:
         return truncated_hash
     
     @staticmethod
-    def _wait_humanly(min_time=10, max_time=15):
+    def _wait_humanly(min_time=3, max_time=6):
         """ Wait a random time between min_time and max_time seconds """
         time_to_sleep = random.uniform(min_time, max_time)
         logging.info(f'Waiting {time_to_sleep} seconds')
