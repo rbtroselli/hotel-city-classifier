@@ -92,7 +92,7 @@ class ReviewIterator(BaseIterator):
                 next_page_button.click()
                 logging.info('Clicked Next Page button')
                 self._wait_humanly()
-                self._wait_and_return_element(by='class name', value='azLzJ.MI.Gi.z.Z.BB.kYVoW') # wait for comment boxes to load
+                self._wait_and_return_element(by='class name', value='azLzJ MI Gi z Z BB kYVoW') # wait for comment boxes to load
                 self.continue_hotel_flag = True # reset flag to True when button is pressed
                 break
             except NoSuchElementException:
@@ -113,31 +113,31 @@ class ReviewIterator(BaseIterator):
         """ Scrape single review """
         # review
         try:
-            self.review_dict['url'] = self.comment_box.find_element('class name', 'joSMp.MI._S.b.S6.H5.Cj._a').find_element('class name', 'BMQDV._F.Gv.wSSLS.SwZTJ').get_attribute('href')
+            self.review_dict['url'] = self.comment_box.find_element('class name', 'joSMp MI _S b S6 H5 Cj _a').find_element('class name', 'BMQDV _F Gv wSSLS SwZTJ').get_attribute('href')
             self.review_dict['id'] = self._get_hashed_id(self.review_dict['url'])
-            self.review_dict['title'] = self.comment_box.find_element('class name', 'JbGkU.Cj').text
-            self.review_dict['text'] = self.comment_box.find_element('class name', 'orRIx.Ci._a.C').text
-            self.review_dict['rating'] = self.comment_box.find_element('class name', 'IaVba.F1').text.split(' ')[0]
-            if 'today' in self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower():
-                review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower()
+            self.review_dict['title'] = self.comment_box.find_element('class name', 'JbGkU Cj').text
+            self.review_dict['text'] = self.comment_box.find_element('class name', 'orRIx Ci _a C ').text
+            self.review_dict['rating'] = self.comment_box.find_element('class name', 'IaVba F1').text.split(' ')[0]
+            if 'today' in self.comment_box.find_element('class name', 'ScwkD _Z o S4 H3 Ci').text.lower():
+                review_date = self.comment_box.find_element('class name', 'ScwkD _Z o S4 H3 Ci').text.lower()
                 self.review_dict['month_of_review'] = time.strftime('%m')
                 self.review_dict['year_of_review'] = time.strftime('%Y')
-            elif 'yesterday' in self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower():
-                review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.lower()
+            elif 'yesterday' in self.comment_box.find_element('class name', 'ScwkD _Z o S4 H3 Ci').text.lower():
+                review_date = self.comment_box.find_element('class name', 'ScwkD _Z o S4 H3 Ci').text.lower()
                 yesterday = time.strftime('%Y-%m-%d', time.localtime(time.time() - 86400))
                 self.review_dict['month_of_review'] = yesterday.split('-')[1]
                 self.review_dict['year_of_review'] = yesterday.split('-')[0]
             else: # standard case, month and year
-                review_date = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text
-                self.review_dict['month_of_review'] = ReviewIterator.months_short_dict[self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.split(' ')[-2].lower()]
-                self.review_dict['year_of_review'] = self.comment_box.find_element('class name', 'ScwkD._Z.o.S4.H3.Ci').text.split(' ')[-1]
+                review_date = self.comment_box.find_element('class name', 'ScwkD _Z o S4 H3 Ci').text
+                self.review_dict['month_of_review'] = ReviewIterator.months_short_dict[self.comment_box.find_element('class name', 'ScwkD _Z o S4 H3 Ci').text.split(' ')[-2].lower()]
+                self.review_dict['year_of_review'] = self.comment_box.find_element('class name', 'ScwkD _Z o S4 H3 Ci').text.split(' ')[-1]
                 if int(self.review_dict['year_of_review']) < 2000: # if year is less than 2000, the scraper got the day of the month. It happens when the review is from the current month, so set the year to current year
                     self.review_dict['year_of_review'] = time.strftime('%Y')
-            review_date_of_stay = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else 'NA'
-            self.review_dict['month_of_stay'] = ReviewIterator.months_long_dict[self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-2].lower()] if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else -1
-            self.review_dict['year_of_stay'] = self.comment_box.find_element('class name', 'iSNGb._R.Me.S4.H3.Cj').text.split(': ')[-1].split(' ')[-1] if self.comment_box.find_elements('class name', 'iSNGb._R.Me.S4.H3.Cj') != [] else -1
-            self.review_dict['likes'] = self.comment_box.find_element('class name', 'biGQs._P.FwFXZ').text
-            self.review_dict['pics_flag'] = True if self.comment_box.find_elements('class name', 'Ctnpg._T.lqJaB') != [] else False
+            review_date_of_stay = self.comment_box.find_element('class name', 'iSNGb _R Me S4 H3 Cj').text if self.comment_box.find_elements('class name', 'iSNGb _R Me S4 H3 Cj') != [] else 'NA'
+            self.review_dict['month_of_stay'] = ReviewIterator.months_long_dict[self.comment_box.find_element('class name', 'iSNGb _R Me S4 H3 Cj').text.split(': ')[-1].split(' ')[-2].lower()] if self.comment_box.find_elements('class name', 'iSNGb _R Me S4 H3 Cj') != [] else -1
+            self.review_dict['year_of_stay'] = self.comment_box.find_element('class name', 'iSNGb _R Me S4 H3 Cj').text.split(': ')[-1].split(' ')[-1] if self.comment_box.find_elements('class name', 'iSNGb _R Me S4 H3 Cj') != [] else -1
+            self.review_dict['likes'] = self.comment_box.find_element('class name', 'biGQs _P FwFXZ').text
+            self.review_dict['pics_flag'] = True if self.comment_box.find_elements('class name', 'Ctnpg _T lqJaB') != [] else False
             self.review_dict['language'] = detect(self.review_dict['text'])
             # review response
             self.review_dict['response_from'] = self.comment_box.find_element('class name', 'MFqgB').text if self.comment_box.find_elements('class name', 'MFqgB') else None
@@ -145,11 +145,11 @@ class ReviewIterator(BaseIterator):
             self.review_dict['response_date'] = self.comment_box.find_element('class name', 'vijoR').get_attribute('title') if self.comment_box.find_elements('class name', 'vijoR') else None
             self.review_dict['response_language'] = detect(self.review_dict['response_text']) if self.review_dict['response_text'] else None
             # review user
-            self.user_dict['url'] = self.comment_box.find_element('class name', 'MjDLG.VKCbE').get_attribute('href')
+            self.user_dict['url'] = self.comment_box.find_element('class name', 'MjDLG VKCbE').get_attribute('href')
             self.user_dict['id'] = self._get_hashed_id(self.user_dict['url'])
-            self.user_dict['name'] = self.comment_box.find_element('class name', 'MjDLG.VKCbE').get_attribute('href').split('Profile/')[-1]
-            self.user_dict['name_shown'] = self.comment_box.find_element('class name', 'MjDLG.VKCbE').text
-            for review_user_info in self.comment_box.find_elements('class name', 'sIZXw.S2.H2.Ch.d'):
+            self.user_dict['name'] = self.comment_box.find_element('class name', 'MjDLG VKCbE').get_attribute('href').split('Profile/')[-1]
+            self.user_dict['name_shown'] = self.comment_box.find_element('class name', 'MjDLG VKCbE').text
+            for review_user_info in self.comment_box.find_elements('class name', 'sIZXw S2 H2 Ch d'):
                 if 'contribution' in review_user_info.text:
                     self.user_dict['contributions'] = review_user_info.text.split(' ')[0].replace(',', '')
                 elif 'helpful vote' in review_user_info.text:
@@ -175,7 +175,7 @@ class ReviewIterator(BaseIterator):
 
     def _scrape_review_page(self):
         """ Scrape the review page """
-        comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
+        comment_boxes = self.driver.find_elements('class name', 'azLzJ MI Gi z Z BB kYVoW')
         for self.comment_box in comment_boxes:
             self._reset_dict(self.review_dict)
             self._reset_dict(self.user_dict)
@@ -211,7 +211,7 @@ class ReviewIterator(BaseIterator):
         while retries < 5:
             try:
                 self._get_page()
-                self._wait_and_return_element(by='class name', value='WMndO.f') # check presence of element
+                self._wait_and_return_element(by='class name', value='WMndO f') # check presence of element
                 self._wait_humanly()
                 logging.info('Setup page')
                 break

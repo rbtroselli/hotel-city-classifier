@@ -101,7 +101,7 @@ class BaseIterator:
         try:
             self.driver.get(self.url)
             logging.info(f'Got page: {self.url}')
-            time.sleep(10) # testtt
+            time.sleep(5) # testtt
         except Exception as e:
             logging.error('Error getting page')
             logging.exception('An error occurred')
@@ -117,11 +117,13 @@ class BaseIterator:
             logging.exception('An error occurred')
         return
     
+
+    # can this be done directly with find_element??? It has timeout
     def _wait_and_return_element(self, by, value, timeout=30):
         """ Wait for an element to be present """
-        if by == 'class name': # this library wants spaces instead of dots for class names
-            value = value.replace('.', ' ')
-        print(by, value)
+        # if by == 'class name': # this library wants spaces instead of dots for class names
+        #     value = value.replace('.', ' ')
+        # print(by, value)
         for passed_time in range(timeout):
             try:
                 element = self.driver.find_element(by, value)
@@ -139,6 +141,12 @@ class BaseIterator:
                 return None
         logging.error('Error waiting for element')
         return None
+    
+    # override find_element() and find_elements() methods to remove dots from class names
+    def find_element(self, **kwargs):
+        if 'class name' in kwargs:
+            kwargs['class_name'] = kwargs['class_name'].replace('.', ' ')
+        return self.driver.find_element(**kwargs)
     
     
     # to do: def _click_button(self, xpath):
