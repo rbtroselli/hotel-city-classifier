@@ -118,8 +118,14 @@ class HotelIterator(BaseIterator):
         self.hotel_dict['reviews'] = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[1].text.split(' ')[0].replace(',','')
         self.hotel_dict['category_rank'] = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[2].text.replace('#', '').replace(',','')
         self.hotel_dict['star_rating'] = self.driver.find_element('class name', 'JXZuC.d.H0').get_attribute('textContent').split(' ')[0] if self.driver.find_elements('class name', 'JXZuC.d.H0') != [] else None
-        self.hotel_dict['nearby_restaurants'] = self.driver.find_elements('class name', 'CllfH')[1].text.split(' ')[0].replace(',','')
-        self.hotel_dict['nearby_attractions'] = self.driver.find_elements('class name', 'CllfH')[2].text.split(' ')[0].replace(',','')
+        # self.hotel_dict['nearby_restaurants'] = self.driver.find_elements('class name', 'CllfH')[1].text.split(' ')[0].replace(',','')
+        # self.hotel_dict['nearby_attractions'] = self.driver.find_elements('class name', 'CllfH')[2].text.split(' ')[0].replace(',','')
+        for nearby_things in self.driver.find_elements('class name', 'CllfH'):
+            logging.info(f'Got nearby things: {nearby_things.text}')
+            if 'Restaurants' in nearby_things.text:
+                self.hotel_dict['nearby_restaurants'] = nearby_things.text.split(' ')[0].replace(',','')
+            elif 'Attractions' in nearby_things.text:
+                self.hotel_dict['nearby_attractions'] = nearby_things.text.split(' ')[0].replace(',','')
         self.hotel_dict['walkers_score'] = self.driver.find_element('class name', 'UQxjK.H-').text if self.driver.find_elements('class name', 'UQxjK.H-') != [] else None
         self.hotel_dict['pictures'] = self.driver.find_element('class name', 'GuzzA').text.split('(')[-1].replace(')','').replace(',','') if self.driver.find_elements('class name', 'GuzzA') != [] else 0
         self.hotel_dict['average_night_price'] = self.driver.find_element('class name', 'biGQs._P.pZUbB.fOtGX').text.split('$')[-1].split(' ')[0].replace(',','') if self.driver.find_elements('class name', 'biGQs._P.pZUbB.fOtGX') != [] else -1
