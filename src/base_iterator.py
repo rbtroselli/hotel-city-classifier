@@ -74,7 +74,7 @@ class BaseIterator:
         return truncated_hash
     
     @staticmethod
-    def _wait_humanly(min_time=5, max_time=8):
+    def _wait_humanly(min_time=4, max_time=6):
         """ Wait a random time between min_time and max_time seconds """
         time_to_sleep = random.uniform(min_time, max_time)
         logging.info(f'Waiting {time_to_sleep} seconds')

@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from langdetect import detect
+from langdetect.lang_detect_exception import LangDetectException
 
 
 
@@ -24,7 +25,6 @@ class ReviewIterator(BaseIterator):
         self.hotel_page_reviews_number = None
         self.hotel_scraped_reviews_number = None
         self.comment_box = None
-        self.skip_review_flag = False
         # attributes that go in the db
         self.review_dict = {
             'id': None,
@@ -142,7 +142,12 @@ class ReviewIterator(BaseIterator):
             self.review_dict['response_from'] = self.comment_box.find_element('class name', 'MFqgB').text if self.comment_box.find_elements('class name', 'MFqgB') else None
             self.review_dict['response_text'] = self.comment_box.find_element('class name', 'XCFtd').text if self.comment_box.find_elements('class name', 'XCFtd') else None
             self.review_dict['response_date'] = self.comment_box.find_element('class name', 'vijoR').get_attribute('title') if self.comment_box.find_elements('class name', 'vijoR') else None
-            self.review_dict['response_language'] = detect(self.review_dict['response_text']) if self.review_dict['response_text'] else None
+            try: # for cases like '...' (happens surprisingly often)
+                self.review_dict['response_language'] = detect(self.review_dict['response_text']) if self.review_dict['response_text'] else None
+            except LangDetectException as e:
+                logging.error('Error detecting response language')
+                logging.exception('An error occurred')
+                self.review_dict['response_language'] = None
             # review user
             self.user_dict['url'] = self.comment_box.find_element('class name', 'MjDLG.VKCbE').get_attribute('href')
             self.user_dict['id'] = self._get_hashed_id(self.user_dict['url'])
@@ -167,33 +172,36 @@ class ReviewIterator(BaseIterator):
                         value_str = value
                     logging.info(f'{key}: {value_str}')
         except Exception as e:
-            self.skip_review_flag = True # Do not insert if there is an error
-            self.continue_hotel_flag = False # Do not continue with the hotel either if there is an error
             logging.error('Error scraping review')
+            logging.info(self.review_dict)
+            logging.info(self.user_dict)
             logging.exception('An error occurred')
+            raise e # propagate error to go in retry for the whole page
         return
 
     def _scrape_review_page(self):
-        """ Scrape the review page """
-        try: # catch errors for not loading comment boxes (not caught in the inner functions)
-            self._check_page(class_to_check='azLzJ.MI.Gi.z.Z.BB.kYVoW') # wait for comment boxes to load
-            comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
-            for self.comment_box in comment_boxes:
-                self._reset_dict(self.review_dict)
-                self._reset_dict(self.user_dict)
-                self.skip_review_flag = False # reset
-                self._scrape_single_review()
-                if self.skip_review_flag == True: # do not insert the review
-                    continue
-                self._insert_replace_row(table='REVIEW', column_value_dict=self.review_dict, commit=False)
-                self._insert_replace_row(table='USER', column_value_dict=self.user_dict, commit=False)
-                logging.info('-'*50)
-            self.connection.commit() # commit the whole page at the end
-            logging.info('Scraped review page. Committed reviews and users insert or replace to db')
-        except Exception as e:
-            logging.error('Error scraping review page')
-            logging.exception('An error occurred')
-            self.continue_hotel_flag = False # Go to next hotel if an error occurs
+        """ Scrape the review page. Retries implemented """
+        retries = 0
+        while retries < 10: # retries for the whole page
+            try: # catch errors for not loading comment boxes (not caught in the inner functions), and propagated inner errors
+                self._check_page(class_to_check='azLzJ.MI.Gi.z.Z.BB.kYVoW') # wait for comment boxes to load
+                comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
+                for self.comment_box in comment_boxes:
+                    self._reset_dict(self.review_dict)
+                    self._reset_dict(self.user_dict)
+                    self._scrape_single_review()
+                    self._insert_replace_row(table='REVIEW', column_value_dict=self.review_dict, commit=False)
+                    self._insert_replace_row(table='USER', column_value_dict=self.user_dict, commit=False)
+                    logging.info('-'*50)
+                self.connection.commit() # commit the whole page at the end
+                logging.info('Scraped review page. Committed reviews and users insert or replace to db')
+                break
+            except Exception as e:
+                retries += 1
+                logging.error(f'Error checking or loading review page, retry: {retries}')
+                logging.exception('An error occurred')
+                self._wait_humanly()
+                continue
         return
 
     def _sub_iterate_reviews_pages(self):
@@ -257,18 +265,23 @@ class ReviewIterator(BaseIterator):
     def _subclass_run(self):
         """ Iterate over hotel pages """
         while True:
-            self.continue_hotel_flag = True # reset flag
-            self.hotel_id, self.hotel_url = self._get_row_from_db(table='RESULT', column_list=['id', 'url'], condition='hotel_scraped_flag=1 and reviews_scraped_flag=0')
-            if (self.hotel_id == None and self.hotel_url == None): # no more hotels to scrape reviews of
-                break
-            self._setup_page()
-            self._push_all_languages_button()
-            self._sub_iterate_reviews_pages()
-            self._get_hotel_page_reviews_number()
-            self._get_hotel_scraped_reviews_number()
-            if (self.hotel_scraped_reviews_number < self.hotel_page_reviews_number or self.hotel_scraped_reviews_number > self.hotel_page_reviews_number + 10):
-                logging.error('Missing reviews for the hotel, skipping to next hotel without updating the reviews flag')
+            try:
+                self.continue_hotel_flag = True # reset flag
+                self.hotel_id, self.hotel_url = self._get_row_from_db(table='RESULT', column_list=['id', 'url'], condition='hotel_scraped_flag=1 and reviews_scraped_flag=0')
+                if (self.hotel_id == None and self.hotel_url == None): # no more hotels to scrape reviews of
+                    break
+                self._setup_page()
+                self._push_all_languages_button()
+                self._sub_iterate_reviews_pages()
+                self._get_hotel_page_reviews_number()
+                self._get_hotel_scraped_reviews_number()
+                if (self.hotel_scraped_reviews_number < self.hotel_page_reviews_number or self.hotel_scraped_reviews_number > self.hotel_page_reviews_number + 10):
+                    logging.error('Missing reviews for the hotel, skipping to next hotel without updating the reviews flag')
+                    continue
+                self._update_flag(table='RESULT', column='reviews_scraped_flag', value=True, condition=f'id={self.hotel_id}')
+            except Exception as e:
+                logging.error('Error iterating hotel, going to next hotel')
+                logging.exception('An error occurred')
                 continue
-            self._update_flag(table='RESULT', column='reviews_scraped_flag', value=True, condition=f'id={self.hotel_id}')
         logging.info('Iterated all hotels. Done')
         return
