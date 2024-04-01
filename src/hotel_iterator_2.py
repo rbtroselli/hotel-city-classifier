@@ -57,17 +57,20 @@ class HotelIterator(BaseIterator):
             'reviews_1_terrible': None,
             'reviews_keywords': None
         }
-        # additional attributes, to be flattened in the db
+        # additional attributes, to be flattened in the db. These could be local
         self.hotel_amenities_dict = {}
         self.hotel_qualities_dict = {}
         self.hotel_additional_info_dict = {}
         self.hotel_reviews_keypoints_dict = {}
         self.hotel_reviews_distribution_dict = {}
         self.hotel_reviews_keywords_list = []
-        # geocoding api attributes
+        # geocoding api attributes. These could be local
         self.hotel_latitude = None
         self.hotel_longitude = None
         self.hotel_altitude = None
+        # price range extremes. These could be local
+        self.price_range_min = None
+        self.price_range_max = None
         logging.info('Completed subclass initialization')
         return
 
@@ -78,11 +81,27 @@ class HotelIterator(BaseIterator):
     def _geocode_hotel(self): 
         """ Geocode hotel address to coordinates """
         geolocator = Nominatim(user_agent='hotel_locator_geocoder', timeout=30)
-        location = geolocator.geocode(self.hotel_address)
-        self.hotel_latitude = location.latitude if location is not None else None
-        self.hotel_longitude = location.longitude if location is not None else None
-        self.hotel_altitude = location.altitude if location is not None else None
+        location = geolocator.geocode(self.hotel_dict['address'])
+        self.hotel_latitude = location.latitude if location is not None else -1
+        self.hotel_longitude = location.longitude if location is not None else -1
+        self.hotel_altitude = location.altitude if location is not None else -1
         logging.info(f'Geocoded hotel: {self.hotel_latitude}, {self.hotel_longitude}, {self.hotel_altitude}')
+        return
+    
+    def _reset_instance_attributes(self):
+        """ Reset instance attributes that are not part of the dictionry """
+        self.hotel_amenities_dict = {}
+        self.hotel_qualities_dict = {}
+        self.hotel_additional_info_dict = {}
+        self.hotel_reviews_keypoints_dict = {}
+        self.hotel_reviews_distribution_dict = {}
+        self.hotel_reviews_keywords_list = []
+        self.hotel_latitude = None
+        self.hotel_longitude = None
+        self.hotel_altitude = None
+        self.price_range_min = None
+        self.price_range_max = None
+        logging.info('Reset instance attributes')
         return
     
 
@@ -92,17 +111,18 @@ class HotelIterator(BaseIterator):
     def _scrape_hotel_page(self):
         """ Scrape hotel data """
         self._reset_dict(self.hotel_dict) # reset dict before scraping
+        self._reset_instance_attributes() # reset instance attributes before scraping
         self.hotel_dict['name'] = self.driver.find_element('class name', 'WMndO.f').text
         self.hotel_dict['address'] = self.driver.find_element('class name', 'FhOgt.H3.f.u.fRLPH').text
         self.hotel_dict['rating'] = self.driver.find_element('class name', 'kJyXc.P').text
-        self.hotel_dict['reviews'] = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[0].text.split(' ')[0].replace(',','')
-        self.hotel_dict['category_rank'] = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[1].text.replace('#', '').replace(',','')
+        self.hotel_dict['reviews'] = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[1].text.split(' ')[0].replace(',','')
+        self.hotel_dict['category_rank'] = self.driver.find_elements('class name', 'biGQs._P.pZUbB.KxBGd')[2].text.replace('#', '').replace(',','')
         self.hotel_dict['star_rating'] = self.driver.find_element('class name', 'JXZuC.d.H0').get_attribute('textContent').split(' ')[0] if self.driver.find_elements('class name', 'JXZuC.d.H0') != [] else None
         self.hotel_dict['nearby_restaurants'] = self.driver.find_elements('class name', 'CllfH')[1].text.split(' ')[0].replace(',','')
         self.hotel_dict['nearby_attractions'] = self.driver.find_elements('class name', 'CllfH')[2].text.split(' ')[0].replace(',','')
         self.hotel_dict['walkers_score'] = self.driver.find_element('class name', 'UQxjK.H-').text if self.driver.find_elements('class name', 'UQxjK.H-') != [] else None
         self.hotel_dict['pictures'] = self.driver.find_element('class name', 'GuzzA').text.split('(')[-1].replace(')','').replace(',','') if self.driver.find_elements('class name', 'GuzzA') != [] else 0
-        self.hotel_dict['average_night_price'] = self.driver.find_element('class name', 'biGQs._P.pZUbB.fOtGX').text.split('$')[-1].split(' ')[0].replace(',','') if self.driver.find_elements('class name', 'biGQs._P.pZUbB.fOtGX') != [] else None
+        self.hotel_dict['average_night_price'] = self.driver.find_element('class name', 'biGQs._P.pZUbB.fOtGX').text.split('$')[-1].split(' ')[0].replace(',','') if self.driver.find_elements('class name', 'biGQs._P.pZUbB.fOtGX') != [] else -1
         self.hotel_dict['reviews_summary'] = self.driver.find_element('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd').text if self.driver.find_elements('class name', 'biGQs._P.pZUbB.ncFvv.KxBGd') != [] else 'No reviews summary'
         # hotel description
         if self.driver.find_elements('class name', '_T.FKffI.TPznB.Ci.ajMTa.Ps.Z.BB.bmUTE') != []: # desc with "Read more" button
@@ -164,12 +184,11 @@ class HotelIterator(BaseIterator):
         self.hotel_dict['price_range_max'] = self.price_range_max if self.price_range_max is not None else -1
         # hotel reviews keypoints
         key_points = self.driver.find_elements('class name', 'zQDwR.f.Pe.PX.Pr.PJ.u._S.hJoAg')
-        if key_points == []:
-            return
-        for point in key_points:
-            point_name = point.find_element('class name', 'biGQs._P.pZUbB.qWPrE.hmDzD').text
-            point_grade = point.find_element('class name', 'biGQs._P.kdCdj.ncFvv.fOtGX').text
-            self.hotel_reviews_keypoints_dict[point_name] = point_grade
+        if key_points != []:
+            for point in key_points:
+                point_name = point.find_element('class name', 'biGQs._P.pZUbB.qWPrE.hmDzD').text
+                point_grade = point.find_element('class name', 'biGQs._P.kdCdj.ncFvv.fOtGX').text
+                self.hotel_reviews_keypoints_dict[point_name] = point_grade
         self.hotel_dict['reviews_keypoint_location'] = self.hotel_reviews_keypoints_dict['Location'] if 'Location' in self.hotel_reviews_keypoints_dict else 'NA'
         self.hotel_dict['reviews_keypoint_atmosphere'] = self.hotel_reviews_keypoints_dict['Atmosphere'] if 'Atmosphere' in self.hotel_reviews_keypoints_dict else 'NA'
         self.hotel_dict['reviews_keypoint_rooms'] = self.hotel_reviews_keypoints_dict['Rooms'] if 'Rooms' in self.hotel_reviews_keypoints_dict else 'NA'
@@ -179,12 +198,10 @@ class HotelIterator(BaseIterator):
         self.hotel_dict['reviews_keypoint_amenities'] = self.hotel_reviews_keypoints_dict['Amenities'] if 'Amenities' in self.hotel_reviews_keypoints_dict else 'NA'
         # reviews keywords 
         keywords = self.driver.find_elements('class name', 'OKHdJ.z.Pc.PQ.Pp.PD.W._S.Gn.Rd._M.qWPrE.biKBZ.PQFNM.wSSLS')
-        if keywords == []:
-            logging.info('No reviews keywords found')
-            return
-        for keyword in keywords:
-            self.hotel_reviews_keywords_list.append(keyword.text)
-        self.hotel_reviews_keywords_list.remove('All reviews') # remove 'All reviews' from list
+        if keywords != []:
+            for keyword in keywords:
+                self.hotel_reviews_keywords_list.append(keyword.text)
+            self.hotel_reviews_keywords_list.remove('All reviews') # remove 'All reviews' from list
         self.hotel_dict['reviews_keywords'] = ','.join([keyword for keyword in self.hotel_reviews_keywords_list]) if self.hotel_reviews_keywords_list != [] else 'NA'
         # reviews distribution
         reviews_amounts = self.driver.find_elements('class name', 'QErCz')

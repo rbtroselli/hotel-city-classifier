@@ -47,7 +47,7 @@ class BaseIterator:
         """ Return a driver to use selenium """
         try:
             chrome_options = webdriver.ChromeOptions()
-            # chrome_options.add_argument(f'--user-data-dir={BROWSER_FOLDER_PATH}/user_data')
+            chrome_options.add_argument(f'--user-data-dir={BROWSER_FOLDER_PATH}/user_data')
             chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
             chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
             chrome_options.add_experimental_option('useAutomationExtension', False) 
