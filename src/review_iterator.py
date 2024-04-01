@@ -168,6 +168,7 @@ class ReviewIterator(BaseIterator):
                     logging.info(f'{key}: {value_str}')
         except Exception as e:
             self.skip_review_flag = True # Do not insert if there is an error
+            self.continue_hotel_flag = False # Do not continue with the hotel either if there is an error
             logging.error('Error scraping review')
             logging.exception('An error occurred')
         return
@@ -180,7 +181,7 @@ class ReviewIterator(BaseIterator):
             self._reset_dict(self.user_dict)
             self.skip_review_flag = False # reset
             self._scrape_single_review()
-            if self.skip_review_flag == True: # do not insert
+            if self.skip_review_flag == True: # do not insert the review
                 continue
             self._insert_replace_row(table='REVIEW', column_value_dict=self.review_dict, commit=False)
             self._insert_replace_row(table='USER', column_value_dict=self.user_dict, commit=False)
@@ -224,10 +225,10 @@ class ReviewIterator(BaseIterator):
     
     def _push_all_languages_button(self):
         """ Click on 'All languages' button. Retries implemented """
-        all_languages_button = self.driver.find_element('xpath', "//span[contains(text(),'All languages')]")
         retries = 0
         while retries < 5:
             try:
+                all_languages_button = self.driver.find_element('xpath', "//span[contains(text(),'All languages')]")
                 wait = WebDriverWait(self.driver, 5)
                 wait.until(EC.element_to_be_clickable(all_languages_button)).click()
                 logging.info('Clicked All languages button')

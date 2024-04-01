@@ -9,6 +9,7 @@ current_dir = Path(__file__).resolve().parent
 DB_FOLDER_PATH = current_dir.parent / 'database' 
 DDL_FOLDER_PATH = current_dir.parent / 'database' / 'ddl'
 LOG_FOLDER_PATH = current_dir.parent / 'logs'
+BROWSER_FOLDER_PATH = current_dir.parent / 'browser'
 API_KEYS_FILE_PATH = current_dir / 'keys.py'
 
 # flags

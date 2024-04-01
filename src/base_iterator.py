@@ -7,8 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By 
-from _config import LOG_FOLDER_PATH
-from _config import DB_FOLDER_PATH
+from _config import LOG_FOLDER_PATH, DB_FOLDER_PATH, BROWSER_FOLDER_PATH
 
 
 class BaseIterator:
@@ -48,7 +47,8 @@ class BaseIterator:
         """ Return a driver to use selenium """
         try:
             chrome_options = webdriver.ChromeOptions()
-            # chrome_options.add_argument('--user-data-dir=./browser/user_data')
+            chrome_options.add_argument(f'--user-data-dir={BROWSER_FOLDER_PATH}/user_data')
+            # chrome_options.add_argument(f'--profile-directory={BROWSER_FOLDER_PATH}/user_profile')
             chrome_options.add_argument('--disable-blink-features=AutomationControlled') 
             chrome_options.add_experimental_option('excludeSwitches', ['enable-automation']) # remove "Chrome is being controlled by an automated software"
             chrome_options.add_experimental_option('useAutomationExtension', False) 
@@ -56,6 +56,7 @@ class BaseIterator:
             # chrome_options.add_argument('--incognito')
             self.driver = webdriver.Chrome(options=chrome_options)
             self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
+            # time.sleep(1000)
             logging.info('Got driver')
         except Exception as e:
             logging.error('Error getting driver')
@@ -73,7 +74,7 @@ class BaseIterator:
         return truncated_hash
     
     @staticmethod
-    def _wait_humanly(min_time=3, max_time=6):
+    def _wait_humanly(min_time=5, max_time=8):
         """ Wait a random time between min_time and max_time seconds """
         time_to_sleep = random.uniform(min_time, max_time)
         logging.info(f'Waiting {time_to_sleep} seconds')
@@ -100,6 +101,7 @@ class BaseIterator:
             logging.exception('An error occurred')
         return
 
+    # to do: rename to _wait_and_return_element() or similar. Use everywhere in the code, in place of EC?
     def _check_page(self, class_to_check): # looks for specific classes to check if the page is loaded
         """ Check if the page is loaded, based on the presence of a class """
         try:
