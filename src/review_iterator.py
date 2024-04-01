@@ -175,19 +175,25 @@ class ReviewIterator(BaseIterator):
 
     def _scrape_review_page(self):
         """ Scrape the review page """
-        comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
-        for self.comment_box in comment_boxes:
-            self._reset_dict(self.review_dict)
-            self._reset_dict(self.user_dict)
-            self.skip_review_flag = False # reset
-            self._scrape_single_review()
-            if self.skip_review_flag == True: # do not insert the review
-                continue
-            self._insert_replace_row(table='REVIEW', column_value_dict=self.review_dict, commit=False)
-            self._insert_replace_row(table='USER', column_value_dict=self.user_dict, commit=False)
-            logging.info('-'*50)
-        self.connection.commit() # commit the whole page at the end
-        logging.info('Scraped review page. Committed reviews and users insert or replace to db')
+        try: # catch errors for not loading comment boxes (not caught in the inner functions)
+            self._check_page(class_to_check='azLzJ.MI.Gi.z.Z.BB.kYVoW') # wait for comment boxes to load
+            comment_boxes = self.driver.find_elements('class name', 'azLzJ.MI.Gi.z.Z.BB.kYVoW')
+            for self.comment_box in comment_boxes:
+                self._reset_dict(self.review_dict)
+                self._reset_dict(self.user_dict)
+                self.skip_review_flag = False # reset
+                self._scrape_single_review()
+                if self.skip_review_flag == True: # do not insert the review
+                    continue
+                self._insert_replace_row(table='REVIEW', column_value_dict=self.review_dict, commit=False)
+                self._insert_replace_row(table='USER', column_value_dict=self.user_dict, commit=False)
+                logging.info('-'*50)
+            self.connection.commit() # commit the whole page at the end
+            logging.info('Scraped review page. Committed reviews and users insert or replace to db')
+        except Exception as e:
+            logging.error('Error scraping review page')
+            logging.exception('An error occurred')
+            self.continue_hotel_flag = False # Go to next hotel if an error occurs
         return
 
     def _sub_iterate_reviews_pages(self):
