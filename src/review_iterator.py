@@ -267,7 +267,7 @@ class ReviewIterator(BaseIterator):
         while True:
             try:
                 self.continue_hotel_flag = True # reset flag
-                self.hotel_id, self.hotel_url = self._get_row_from_db(table='RESULT', column_list=['id', 'url'], condition='hotel_scraped_flag=1 and reviews_scraped_flag=0')
+                self.hotel_id, self.hotel_url = self._get_row_from_db(table='RESULT', column_list=['id', 'url'], condition='hotel_scraped_flag=1 and reviews_scraped_flag=0 and hotel_page_missing_flag=0')
                 if (self.hotel_id == None and self.hotel_url == None): # no more hotels to scrape reviews of
                     logging.info('No more hotels to scrape reviews of')
                     break
