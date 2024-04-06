@@ -5,6 +5,7 @@ keys.py
 _keys.py
 *.db
 _scripts/
+*cache/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
