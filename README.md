@@ -27,15 +27,22 @@ The project holds significance for various stakeholders, including researchers, 
 
 The `BaseIterator` class serves as the foundation for all iterator implementations in our project. It provides common methods and attributes that are shared among all iterator subclasses. Each subclass of `BaseIterator` specializes in performing specific tasks or iterating over specific data sources.
 
-## Common Methods and Attributes
+## Main base class Methods and Attributes
 
 - **run():** Executes the iterator, performing the main iteration logic. Establishes connections and launch _subclass_run.
 - **_subclass_run():** A placeholder method intended for subclasses to implement their specialized iteration logic. Subclasses must override this method to provide their specific implementation.
+- **_get_cursor():** Retrieves the database cursor object for executing SQL queries.
+- **_get_driver():** Retrieves the browser driver object for web scraping tasks.
+- **_get_hashed_id():** Static method. Generates a unique identifier (hash) based on the provided string. The hash is truncated to 19 digits ensuring sufficient uniqueness and compatibility with the database schema.
+- **_wait_humanly():** Static method. Implements a random wait time to simulate human behavior and avoid detection during web scraping.
+- **_reset_dict():** Resets the passed dictionary used for storing scraped data.
+- **_get_page():** Loads page in the browser driver object.
+- **_get_row_from_db():** Retrieves a row from the database based on the provided condition.
+- **_insert_replace_row():** Inserts and replaces (delete-insert) a row into the database.
 - **connection:** A database connection object used for database interactions. Initialized as `None` by default and should be established by subclasses if database access is required.
 - **cursor:** A database cursor object used for executing SQL queries. Initialized as `None` by default and should be established by subclasses if database access is required.
 - **driver:** A browser driver object used for web scraping tasks. Initialized as `None` by default and should be established by subclasses if web scraping is required.
 
-TO BE FINISHED
 
 ## Subclasses
 
@@ -115,7 +122,7 @@ Table containing information about scraped hotels. All the info is taken from th
 </details>
 
 
-### Review
+### REVIEW
 Table containing information about reviews of hotels. The ID is a hash of the URL of the review, as previously mentioned. The hotel ID is a foreign key to the HOTEL table.
 Reviews are scraped from hotel page (each page loads 10 reviews). Reviews in all languages are scraped. Language indication is not present in the webpage itself, so it is detected by the language detection library langdetect. The response from the hotel is not always present, so the fields are often empty. 
 Date of review is scraped as month and year. Precise date of the review is not present in the hotel page, but only in the page of the review itself, that has not been scraped due to the large number of reviews (= page loads needed).
